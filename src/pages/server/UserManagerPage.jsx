@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from "@/components/ui/button";
@@ -20,15 +20,15 @@ const UsersPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
 
-  const syncSubuserServers = async () => {
+  const syncSubuserServers = useCallback(async () => {
     try {
       await axios.post('/api/subuser-servers-sync');
     } catch (err) {
       console.error('Failed to sync subuser servers:', err);
     }
-  };
+  }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -41,7 +41,7 @@ const UsersPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, syncSubuserServers]);
 
   const handleAddUser = async () => {
     try {
@@ -57,7 +57,7 @@ const UsersPage = () => {
     } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to add user. Please try again later.",
+        description: err?.response?.data?.error || "Failed to add user. Please try again later.",
         variant: "destructive",
       });
       console.error(err);
@@ -83,7 +83,7 @@ const UsersPage = () => {
   };
   useEffect(() => {
     fetchUsers();
-  }, [id]);
+  }, [fetchUsers]);
 
   return (
     <div className="space-y-6 p-6">
