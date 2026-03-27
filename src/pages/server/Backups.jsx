@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from "@/components/ui/button";
@@ -16,22 +16,27 @@ const BackupsPage = () => {
   const { id } = useParams();
   const { toast } = useToast();
   const [backups, setBackups] = useState([]);
+  const [backupCount, setBackupCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
 
-  const fetchBackups = async () => {
-    setLoading(false); // Don't show loading spinner during auto-refresh
+  const isEmpty = backupCount === 0 && !loading && !error;
+
+  const fetchBackups = useCallback(async () => {
     setError(null);
+    setLoading(true);
     try {
       const response = await axios.get(`/api/server/${id}/backups`);
       setBackups(response.data.data);
+      setBackupCount(response.data.meta?.backup_count ?? response.data.data.length);
+      setLoading(false);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to fetch backups. Please try again later.'));
       console.error(err);
     }
-  };
+  }, [id]);
 
   const handleCreateBackup = async () => {
     setCreateLoading(true);
@@ -86,10 +91,17 @@ const BackupsPage = () => {
   };
 
   useEffect(() => {
+    setLoading(true);
     fetchBackups();
-    const interval = setInterval(fetchBackups, 3000);
+    const interval = setInterval(fetchBackups, 60000);
     return () => clearInterval(interval);
-  }, [id]);
+  }, [fetchBackups]);
+
+  useEffect(() => {
+    if (backups.length > 0 || error) {
+      setLoading(false);
+    }
+  }, [backups, error]);
 
   useEffect(() => {
     if (!isCreateModalOpen) {
@@ -101,7 +113,11 @@ const BackupsPage = () => {
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-white">Backups</h1>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
+        <Button 
+          onClick={() => setIsCreateModalOpen(true)} 
+          disabled={isEmpty}
+          className={isEmpty ? "bg-neutral-600 border-neutral-600 text-neutral-400 cursor-not-allowed hover:bg-neutral-600 hover:text-neutral-400" : ""}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Create Backup
         </Button>
@@ -119,6 +135,11 @@ const BackupsPage = () => {
           ) : error ? (
             <div className="flex items-center justify-center min-h-[200px] text-red-400">
               {error}
+            </div>
+          ) : isEmpty ? (
+            <div className="flex flex-col items-center justify-center min-h-[200px] text-neutral-400">
+              <p className="text-lg mb-2">No backups found</p>
+              <p className="text-sm">Create your first backup to protect your server data.</p>
             </div>
           ) : (
             <ScrollArea className="h-[600px]">
