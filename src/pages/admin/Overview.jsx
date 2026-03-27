@@ -1,0 +1,695 @@
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Settings,
+  RefreshCw,
+  AlertCircle,
+  Save,
+  Archive,
+  Terminal,
+  FileCode,
+  Upload,
+  Check,
+  Clock,
+  RotateCcw,
+  ShieldAlert,
+  Users,
+  Server,
+  Database,
+  ChevronRight,
+  ArrowRight,
+  Box,
+  CircuitBoard,
+  Rocket,
+  Trash,
+  X
+} from 'lucide-react';
+import axios from 'axios';
+import { useSettings } from '../../hooks/useSettings';
+
+const WELCOME_MODAL_STORAGE_KEY = 'heliactyl-next-welcome-hidden';
+
+// Welcome Modal Component
+function WelcomeModal({ isOpen, onClose }) {
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const { settings } = useSettings();
+  const siteName = settings?.name || "Heliactyl";
+
+  const handleClose = () => {
+    if (dontShowAgain) {
+      localStorage.setItem(WELCOME_MODAL_STORAGE_KEY, 'true');
+    }
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl bg-[#0a0a0a] border-neutral-800 p-8">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{siteName} welcome</DialogTitle>
+          <DialogDescription>
+            Welcome to the latest version of {siteName}. Review the overview and choose whether to hide this welcome message in the future.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4 flex flex-col items-center">
+          <div className="relative space-y-6 flex flex-col items-center text-center w-full">
+            <img src="https://i.imgur.com/7rsHr8H.png" alt="Heliactyl Next Logo" className="w-auto h-24 mb-4" />
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold text-white tracking-tight">Heliactyl Next 10.0.0 (Toledo)</h2>
+              <p className="text-neutral-400 max-w-lg leading-relaxed">
+                The next generation of Heliactyl Next is here. New year, new look, new features and improvements.
+                We're excited to have you join us now that you've upgraded from Heliactyl!
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full mt-10 space-y-4">
+            <button
+              type="button"
+              className="flex items-center space-x-2 group cursor-pointer opacity-60 hover:opacity-100 transition-opacity ml-1"
+              onClick={() => setDontShowAgain(!dontShowAgain)}
+            >
+              <Checkbox
+                id="dontShowAgain"
+                checked={dontShowAgain}
+                onCheckedChange={(checked) => setDontShowAgain(checked)}
+                className="h-4 w-4 border-neutral-700 rounded-sm transition-all duration-200 group-hover:border-neutral-500 data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:text-black shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <span
+                className="text-[0.7rem] uppercase tracking-widest font-bold text-neutral-400 cursor-pointer select-none whitespace-nowrap"
+              >
+                Don't show this again
+              </span>
+            </button>
+            <Button
+              onClick={handleClose}
+              className="group w-full h-12 text-base font-bold transition-all duration-300 active:scale-[0.98] bg-white text-black hover:bg-neutral-100 flex items-center justify-center gap-2 rounded-xl"
+            >
+              Explore Heliactyl Next
+              <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+// System Stats Component
+function SystemStats() {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['system-stats'],
+    queryFn: async () => {
+      const [servers, users, nodes] = await Promise.all([
+        axios.get('/api/servers'),
+        axios.get('/api/users'),
+        axios.get('/api/nodes')
+      ]);
+      return {
+        servers: servers.data.meta.pagination.total || 0,
+        users: users.data.meta.pagination.total || 0,
+        nodes: nodes.data.meta.pagination.total || 0
+      };
+    },
+    refetchInterval: 60000
+  });
+
+  const statCards = [
+    { icon: Server, label: 'Total Servers', value: stats?.servers || 0 },
+    { icon: Users, label: 'Total Users', value: stats?.users || 0 },
+    { icon: CircuitBoard, label: 'Active Nodes', value: stats?.nodes || 0 }
+  ];
+
+return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {statCards.map((stat) => (
+        <Card key={stat.label}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-[#202229] rounded-lg">
+                <stat.icon className="w-6 h-6 text-neutral-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-400">{stat.label}</p>
+                <p className="text-2xl font-bold text-white">
+                  {isLoading ? (
+                    <div className="h-8 w-16 bg-neutral-800 animate-pulse rounded" />
+                  ) : (
+                    (stat.value || 0).toLocaleString()
+                  )}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// Backup Management Dialog
+function BackupsDialog({ isOpen, onClose }) {
+  const [selectedBackup, setSelectedBackup] = useState(null);
+  const [backupToDelete, setBackupToDelete] = useState(null);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showRebootPrompt, setShowRebootPrompt] = useState(false);
+  const { toast } = useToast();
+
+  const { data: backups, isLoading, refetch } = useQuery({
+    queryKey: ['backups'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/config/backups');
+      return data;
+    },
+    enabled: isOpen
+  });
+
+  const handleRestore = async () => {
+    try {
+      setIsRestoring(true);
+      await axios.post(`/api/config/backups/${selectedBackup.name}/restore`);
+      toast({ title: "Success", description: "Configuration restored successfully." });
+      setShowRebootPrompt(true);
+      refetch();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: err.response?.data?.error || 'Failed to restore backup' });
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      await axios.delete(`/api/config/backups/${backupToDelete.name}`);
+      toast({ title: "Success", description: "Backup deleted successfully." });
+      setBackupToDelete(null);
+      refetch();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: err.response?.data?.error || 'Failed to delete backup' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleReboot = async () => {
+    try {
+      await axios.post('/api/reboot');
+      onClose();
+      setTimeout(() => window.location.reload(), 7000);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: 'Failed to reboot dashboard' });
+    }
+  };
+
+  const formatDate = (timestamp) => {
+    return new Date(timestamp).toLocaleString();
+  };
+
+  if (showRebootPrompt) {
+    return (
+      <AlertDialog open={true} onOpenChange={() => setShowRebootPrompt(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Configuration Restored</AlertDialogTitle>
+            <AlertDialogDescription>
+              The configuration has been restored. Would you like to reboot the dashboard now to apply the changes?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowRebootPrompt(false);
+              onClose();
+            }}>Later</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReboot}>Reboot Now</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl bg-[#0a0a0a] border-neutral-800">
+        <DialogHeader>
+          <DialogTitle className="text-white">Configuration Backups</DialogTitle>
+          <DialogDescription>
+            View and manage your dashboard configuration backups. You can restore to a previous version if needed.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <ScrollArea className="h-[400px] rounded-md border border-neutral-800">
+            <div className="overflow-x-auto"><Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-neutral-400">Date</TableHead>
+                  <TableHead className="text-neutral-400">Filename</TableHead>
+                  <TableHead className="text-right text-neutral-400">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={3}>
+                      <div className="flex items-center justify-center py-4 text-white">
+                        <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                        Loading backups...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <>
+                    {Array.isArray(backups) && backups.map((backup) => (
+                      <TableRow key={backup.name}>
+                        <TableCell className="text-white">{formatDate(backup.timestamp)}</TableCell>
+                        <TableCell className="font-mono text-sm text-neutral-300">{backup.name}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="bg-neutral-800 hover:bg-neutral-700 text-white border-neutral-700"
+                            onClick={() => window.open(`/api/config/backups/${backup.name}`, '_blank')}
+                          >
+                            <FileCode className="w-4 h-4 mr-2" />
+                            View
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="bg-white hover:bg-neutral-200 text-black border-white"
+                            onClick={() => setSelectedBackup(backup)}
+                          >
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Restore
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="bg-red-500 hover:bg-red-600 text-white border-red-500"
+                            onClick={() => setBackupToDelete(backup)}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {!backups?.length && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-neutral-500">
+                          No backups found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                )}
+              </TableBody>
+            </Table></div>
+          </ScrollArea>
+        </div>
+
+        {selectedBackup && (
+          <AlertDialog open={true} onOpenChange={() => setSelectedBackup(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Restore Configuration</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to restore the configuration from {formatDate(selectedBackup.timestamp)}?
+                  This will overwrite your current configuration and require a dashboard reboot.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setSelectedBackup(null)}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction onClick={handleRestore} disabled={isRestoring}>
+                  {isRestoring ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Restoring...
+                    </>
+                  ) : (
+                    'Restore Configuration'
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {backupToDelete && (
+          <AlertDialog open={true} onOpenChange={() => setBackupToDelete(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Backup</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete the backup from {formatDate(backupToDelete.timestamp)}?
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setBackupToDelete(null)}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-red-500 hover:bg-red-600">
+                  {isDeleting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete Backup'
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function AdminOverview() {
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [configContent, setConfigContent] = useState('');
+  const [isRebootDialogOpen, setIsRebootDialogOpen] = useState(false);
+  const [isBackupsDialogOpen, setIsBackupsDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRebooting, setIsRebooting] = useState(false);
+  const { toast } = useToast();
+  const { settings } = useSettings();
+
+  const { data: config, isLoading: loadingConfig } = useQuery({
+    queryKey: ['config'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/config');
+      return data;
+    }
+  });
+
+  const { data: rebootStatus, isLoading: loadingReboot } = useQuery({
+    queryKey: ['rebootStatus'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/reboot/status');
+      return data;
+    },
+    refetchInterval: 5000
+  });
+
+  useEffect(() => {
+    if (!settings) {
+      return;
+    }
+
+    setShowWelcome(localStorage.getItem(WELCOME_MODAL_STORAGE_KEY) !== 'true');
+  }, [settings]);
+
+  useEffect(() => {
+    const fetchConfigContent = async () => {
+      try {
+        const { data } = await axios.get('/api/config/raw');
+        setConfigContent(data);
+      } catch (err) {
+        toast({ variant: "destructive", title: "Error", description: 'Failed to load configuration file' });
+      }
+    };
+    fetchConfigContent();
+  }, [toast]);
+
+  const handleSaveConfig = async () => {
+    try {
+      setIsSaving(true);
+
+      // Create backup before saving
+      const timestamp = Date.now();
+      const backupName = `config-${timestamp}.toml`;
+      await axios.post('/api/config/raw', configContent, {
+        headers: { 'Content-Type': 'text/plain' }
+      });
+
+      toast({ title: "Success", description: "Configuration saved successfully. A reboot is required to apply changes." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: err.response?.data?.error || 'Failed to save configuration' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReboot = async () => {
+    try {
+      setIsRebooting(true);
+      setIsRebootDialogOpen(false);
+      await axios.post('/api/reboot');
+      setTimeout(() => window.location.reload(), 7000);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: 'Failed to initiate reboot' });
+      setIsRebooting(false);
+    }
+  };
+
+  const handleCreateBackup = async () => {
+    try {
+      await handleSaveConfig();
+      setIsBackupsDialogOpen(true);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: 'Failed to create backup' });
+    }
+  };
+
+  if (loadingConfig || loadingReboot) {
+    return (
+      <div className="p-6">
+        <div className="h-8 w-32 bg-neutral-800 rounded animate-pulse mb-6" />
+        <div className="grid gap-6">
+          <div className="h-40 bg-neutral-800 rounded animate-pulse" />
+          <div className="h-40 bg-neutral-800 rounded animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-neutral-950">
+      <WelcomeModal
+        isOpen={showWelcome}
+        onClose={() => setShowWelcome(false)}
+      />
+
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Overview</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCreateBackup}
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              Create Backup
+            </Button>
+            <Button
+              onClick={() => setIsRebootDialogOpen(true)}
+              variant={rebootStatus?.needsReboot ? "default" : "outline"}
+              disabled={isRebooting}
+            >
+              {isRebooting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Rebooting...
+                </>
+              ) : rebootStatus?.needsReboot ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Reboot Required
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Reboot Dashboard
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* System Overview Section */}
+        <div className="grid gap-6 mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>System Overview</CardTitle>
+              <CardDescription>Current system status and statistics</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-1">
+                <div className="flex items-center text-sm">
+                  <Badge variant="outline" className="mr-2">{config?.version}</Badge>
+                  <ChevronRight className="w-4 h-4 text-neutral-500" />
+                  <span className="text-neutral-400">Platform {config?.platform_level}</span>
+                  <ChevronRight className="w-4 h-4 text-neutral-500" />
+                  <span className="text-neutral-400">"{config?.platform_codename}"</span>
+                </div>
+              </div>
+              <SystemStats />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-4">
+{/* Main Configuration Section */}
+          <div className="col-span-1 lg:col-span-3">
+            <Card className="flex flex-col h-[calc(100vh-20rem)]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileCode className="w-4 h-4" />
+                  Configuration Editor
+                </CardTitle>
+                <CardDescription>
+                  Edit your dashboard's configuration file directly. Be careful as incorrect changes may break your dashboard.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 pb-0">
+                <div className="h-full">
+                  <textarea
+                    value={configContent}
+                    onChange={(e) => setConfigContent(e.target.value)}
+                    className="w-full h-full p-4 bg-neutral-950 font-mono text-sm text-white resize-none focus:outline-none border border-neutral-800 rounded-md"
+                    spellCheck={false}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between mt-4">
+                <div className="text-sm text-neutral-500">
+                  {rebootStatus?.needsReboot && (
+                    <span className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-yellow-500" />
+                      Reboot required to apply changes
+                    </span>
+                  )}
+                </div>
+                <Button onClick={handleSaveConfig} disabled={isSaving}>
+                  {isSaving ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  Save Changes
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+
+          {/* Quick Actions Section */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+                <CardDescription>Common administrative tasks</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => setIsBackupsDialogOpen(true)}
+                  >
+                    <Archive className="w-4 h-4 mr-2" />
+                    Config Backups
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start hidden"
+                    onClick={() => window.open('/api/config/backups', '_blank')}
+                  >
+                    <FileCode className="w-4 h-4 mr-2" />
+                    View Backup Files
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start hidden"
+                    onClick={async () => {
+                      try {
+                        await axios.post('/api/panel/rebuild');
+                        toast({ title: "Success", description: "Panel rebuild initiated successfully" });
+                      } catch (err) {
+                        toast({ variant: "destructive", title: "Error", description: "Failed to rebuild panel" });
+                      }
+                    }}
+                  >
+                    <Box className="w-4 h-4 mr-2" />
+                    Rebuild Panel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      <BackupsDialog
+        isOpen={isBackupsDialogOpen}
+        onClose={() => setIsBackupsDialogOpen(false)}
+      />
+
+      <AlertDialog open={isRebootDialogOpen} onOpenChange={setIsRebootDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reboot Dashboard</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to reboot the dashboard? All active connections will be temporarily disconnected.
+              {rebootStatus?.needsReboot && (
+                <Alert className="mt-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Configuration changes have been detected that require a reboot to take effect.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsRebootDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReboot} disabled={isRebooting}>
+              {isRebooting ? 'Rebooting...' : 'Reboot Dashboard'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
