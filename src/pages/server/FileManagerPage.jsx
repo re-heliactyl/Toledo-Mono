@@ -138,7 +138,7 @@ const getFileIcon = (file, className = "h-4 w-4") => {
   return <File className={`${className} text-gray-500`} />;
 };
 
-const MAX_BACKEND_UPLOAD_BYTES = 95 * 1024 * 1024;
+const MAX_BACKEND_UPLOAD_BYTES = 40 * 1024 * 1024;
 const MAX_FILE_MANAGER_UPLOAD_BYTES = 100 * 1024 * 1024;
 const FOLDER_SIZE_CONCURRENCY = 2;
 
