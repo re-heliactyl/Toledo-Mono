@@ -167,6 +167,7 @@ const FileManagerPage = () => {
   const [newItemName, setNewItemName] = useState('');
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFiles, setUploadingFiles] = useState([]);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameData, setRenameData] = useState({ oldName: '', newName: '' });
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
@@ -581,6 +582,7 @@ const FileManagerPage = () => {
     try {
       setUploadProgress(0);
       setShowUploadDialog(true); // Show dialog to show progress
+      setUploadingFiles(files.map(f => ({ name: f.name, size: f.size })));
       const normalizedPath = normalizePath(currentPath);
 
       const formData = new FormData();
@@ -692,10 +694,12 @@ const FileManagerPage = () => {
       fetchFiles(normalizedPath);
       setShowUploadDialog(false);
       setUploadProgress(0);
+      setUploadingFiles([]);
     } catch (err) {
       handleError(err);
       setUploadProgress(0);
       setShowUploadDialog(false);
+      setUploadingFiles([]);
     }
   }, [currentPath, normalizePath, id, handleSuccess, fetchFiles, handleError]);
 
@@ -1411,12 +1415,34 @@ const FileManagerPage = () => {
                   onChange={(e) => handleFileUpload(e.target.files)}
                 />
               </button>
-              {uploadProgress > 0 && (
-                <div className="space-y-2">
+              {uploadProgress > 0 && uploadingFiles.length > 0 && (
+                <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-neutral-400">Uploading...</span>
                     <span className="text-neutral-400">{uploadProgress}%</span>
                   </div>
+                  {uploadingFiles.length === 1 ? (
+                    <div className="text-sm text-neutral-300 font-mono bg-neutral-800/50 rounded px-3 py-2 truncate">
+                      {uploadingFiles[0].name} ({formatBytes(uploadingFiles[0].size)})
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="text-sm text-neutral-300 bg-neutral-800/50 rounded px-3 py-2">
+                        <span className="font-medium">{uploadingFiles.length} files</span>
+                        <span className="text-neutral-400"> ({formatBytes(uploadingFiles.reduce((t, f) => t + f.size, 0))} total)</span>
+                      </div>
+                      <ScrollArea className="h-24 rounded-md bg-neutral-800/30 border border-neutral-700/50">
+                        <div className="p-2 space-y-1">
+                          {uploadingFiles.map((file, idx) => (
+                            <div key={idx} className="flex justify-between text-xs font-mono text-neutral-300 px-2">
+                              <span className="truncate max-w-[280px]" title={file.name}>{file.name}</span>
+                              <span className="text-neutral-400 ml-2 shrink-0">{formatBytes(file.size)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  )}
                   <Progress value={uploadProgress} className="w-full h-2" />
                 </div>
               )}
