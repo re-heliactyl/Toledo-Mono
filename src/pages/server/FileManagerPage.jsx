@@ -138,7 +138,6 @@ const getFileIcon = (file, className = "h-4 w-4") => {
   return <File className={`${className} text-gray-500`} />;
 };
 
-const MAX_BACKEND_UPLOAD_BYTES = 40 * 1024 * 1024;
 const MAX_FILE_MANAGER_UPLOAD_BYTES = 100 * 1024 * 1024;
 const FOLDER_SIZE_CONCURRENCY = 2;
 
@@ -595,44 +594,6 @@ const FileManagerPage = () => {
         throw new Error(`This file is too large for the web file manager (${formatBytes(totalUploadSize)}). Please use SFTP for files larger than 100 MB.`);
       }
 
-      const uploadViaBackend = () => new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `/api/server/${id}/files/upload?directory=${encodeURIComponent(normalizedPath)}`);
-
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            setUploadProgress(progress);
-          }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-            return;
-          }
-
-          let message = `Upload failed with status: ${xhr.status}`;
-
-          try {
-            const payload = xhr.responseText ? JSON.parse(xhr.responseText) : null;
-            message = payload?.error || message;
-          } catch (error) {
-            if (xhr.status === 413) {
-              message = `Upload rejected: ${formatBytes(totalUploadSize)} exceeds the dashboard upload limit.`;
-            }
-          }
-
-          reject(new Error(message));
-        };
-
-        xhr.onerror = () => {
-          reject(new Error(`Upload failed while sending ${formatBytes(totalUploadSize)} to the dashboard backend.`));
-        };
-
-        xhr.send(formData);
-      });
-
       const uploadViaSignedUrl = async () => {
         const uploadUrlResponse = await fetch(`/api/server/${id}/files/upload?directory=${encodeURIComponent(normalizedPath)}`, {
           method: 'GET',
@@ -683,11 +644,7 @@ const FileManagerPage = () => {
         });
       };
 
-      if (totalUploadSize > MAX_BACKEND_UPLOAD_BYTES) {
-        await uploadViaSignedUrl();
-      } else {
-        await uploadViaBackend();
-      }
+      await uploadViaSignedUrl();
 
       handleSuccess(`${files.length} file(s) uploaded successfully`);
       forceFolderSizeRefreshRef.current = true;
@@ -1433,8 +1390,8 @@ const FileManagerPage = () => {
                       </div>
                       <ScrollArea className="h-24 rounded-md bg-neutral-800/30 border border-neutral-700/50">
                         <div className="p-2 space-y-1">
-                          {uploadingFiles.map((file, idx) => (
-                            <div key={idx} className="flex justify-between text-xs font-mono text-neutral-300 px-2">
+                          {uploadingFiles.map((file) => (
+                            <div key={`${file.name}-${file.size}`} className="flex justify-between text-xs font-mono text-neutral-300 px-2">
                               <span className="truncate max-w-[280px]" title={file.name}>{file.name}</span>
                               <span className="text-neutral-400 ml-2 shrink-0">{formatBytes(file.size)}</span>
                             </div>
