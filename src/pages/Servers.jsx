@@ -98,6 +98,7 @@ function CreateServerModal({ isOpen, onClose }) {
     }
     if (step === 2) {
       if (!location) return setError('Location is required');
+      if (!selectedNode) return setError('Node selection is required');
     }
     if (step === 3) {
       if (!ram || !disk || !cpu) return setError('Resource values are required');
@@ -116,6 +117,12 @@ function CreateServerModal({ isOpen, onClose }) {
     setStep(step - 1);
   };
 
+  const handleLocationSelect = (nextLocation) => {
+    setLocation(nextLocation);
+    setSelectedNode('');
+    setShowLocationDropdown(false);
+  };
+
   const handleCreate = async () => {
     try {
       setError('');
@@ -124,7 +131,7 @@ function CreateServerModal({ isOpen, onClose }) {
       await axios.post('/api/v5/servers', {
         name: name.trim(),
         egg,
-        location,
+        nodeId: parseInt(selectedNode),
         ram: parseInt(ram),
         disk: parseInt(disk),
         cpu: parseInt(cpu)
@@ -143,7 +150,7 @@ function CreateServerModal({ isOpen, onClose }) {
 
   const steps = [
     { id: 1, name: 'Name & Software' },
-    { id: 2, name: 'Location' },
+    { id: 2, name: 'Node' },
     { id: 3, name: 'Resources' },
     { id: 4, name: 'Review' }
   ];
@@ -262,12 +269,12 @@ function CreateServerModal({ isOpen, onClose }) {
                         <div className="p-2 border-b border-[#333]">
                           <p className="text-xs text-neutral-400 px-2">Select a location</p>
                         </div>
-                        {Array.isArray(locations) && locations.map(l => (
-                          <button
-                            key={l.id}
-                            onClick={() => { setLocation(l.id); setShowLocationDropdown(false); }}
-                            className={`w-full text-left px-4 py-3 hover:bg-white/5 transition-colors flex justify-between items-center ${location === l.id ? 'bg-white/5' : ''}`}
-                          >
+                         {Array.isArray(locations) && locations.map(l => (
+                           <button
+                             key={l.id}
+                             onClick={() => handleLocationSelect(l.id)}
+                             className={`w-full text-left px-4 py-3 hover:bg-white/5 transition-colors flex justify-between items-center ${location === l.id ? 'bg-white/5' : ''}`}
+                           >
                             <span className="text-sm text-neutral-200">{l.name}</span>
                             {location === l.id && <CheckIcon className="w-4 h-4 text-neutral-400" />}
                           </button>
@@ -275,12 +282,12 @@ function CreateServerModal({ isOpen, onClose }) {
                       </div>
                     )}
                   </div>
-                  <p className="text-[11px] text-neutral-500">Choose the geographic location for your server</p>
+                   <p className="text-[11px] text-neutral-500">Choose a location, then select the exact node for your server</p>
                 </div>
 
                 {location && (
                   <div className="space-y-3 pt-2">
-                    <p className="text-sm font-medium text-white">Nodes available in this location</p>
+                     <p className="text-sm font-medium text-white">Select a node in this location</p>
                     <div className="flex gap-3 flex-wrap">
                       {filteredNodes.length > 0 ? filteredNodes.map(node => {
                         // Calculate mock or real load based on memory usage
@@ -425,10 +432,14 @@ function CreateServerModal({ isOpen, onClose }) {
                       <p className="text-sm text-neutral-400 font-medium mb-1">Software</p>
                       <p className="text-base font-bold text-white">{selectedEgg?.name}</p>
                     </div>
-                    <div>
-                      <p className="text-sm text-neutral-400 font-medium mb-1">Location</p>
-                      <p className="text-base font-bold text-white">{selectedLocation?.name}</p>
-                    </div>
+                     <div>
+                        <p className="text-sm text-neutral-400 font-medium mb-1">Location</p>
+                        <p className="text-base font-bold text-white">{selectedLocation?.name}</p>
+                     </div>
+                     <div>
+                       <p className="text-sm text-neutral-400 font-medium mb-1">Node</p>
+                       <p className="text-base font-bold text-white">{filteredNodes.find((node) => node.id === selectedNode)?.name || 'Not selected'}</p>
+                     </div>
                     <div className="grid grid-cols-3 pt-4 border-t border-[#333]">
                       <div>
                         <p className="text-sm text-neutral-400 font-medium mb-1">Memory</p>
