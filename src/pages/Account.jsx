@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { AlertCircle, AlertTriangle, Coins, Copy, Gift, HelpCircle, Key, Loader2, RefreshCw, ShieldCheck, Trash2, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Coins, Eye, EyeOff, Gift, HelpCircle, Copy, Key, RefreshCw, AlertCircle, ShieldCheck, AlertTriangle, Trash2, Loader2 } from 'lucide-react';
 import TwoFactorAuth from './TwoFactorAuth';
 
 const AccountPage = () => {
@@ -300,14 +300,15 @@ const AccountPage = () => {
                     <p className="text-sm text-[#95a1ad] mb-1">Username/Email</p>
                     <div className="flex items-center gap-2">
                       <input
-                        value={'discord_' + userData.id + '@gmail.com'}
+                        value={userData.pterodactylEmail || 'Unavailable until panel sync completes.'}
                         readOnly
                         className="flex-1 px-3 py-2 bg-[#394047] border border-white/5 rounded-md text-sm focus:outline-none"
                       />
                        <button
                          type="button"
-                          onClick={() => copyToClipboard('discord_' + userData.id + '@gmail.com')}
-                        className="p-2 rounded-md border border-white/5 text-[#95a1ad] hover:text-white hover:bg-white/5 transition active:scale-95"
+                          onClick={() => userData.pterodactylEmail && copyToClipboard(userData.pterodactylEmail)}
+                        disabled={!userData.pterodactylEmail}
+                        className={`p-2 rounded-md border border-white/5 transition active:scale-95 ${userData.pterodactylEmail ? 'text-[#95a1ad] hover:text-white hover:bg-white/5' : 'text-white/20 cursor-not-allowed'}`}
                       >
                         <Copy className="h-4 w-4" />
                       </button>
