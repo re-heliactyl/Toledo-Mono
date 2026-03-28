@@ -22,6 +22,46 @@ function formatBanDate(value) {
   }).format(parsed);
 }
 
+function parseBanReason(reason) {
+  if (!reason) {
+    return { mainReason: 'No reason provided.', metadata: [], supportSentence: '' };
+  }
+
+  const metadata = [];
+  let workingReason = reason.trim();
+  let supportSentence = '';
+
+  const supportMatch = workingReason.match(/If you believe this is.*$/i);
+  if (supportMatch) {
+    supportSentence = supportMatch[0].trim();
+    workingReason = workingReason.replace(supportMatch[0], '').trim();
+  }
+
+  const metadataStart = workingReason.search(/(Banned user ID:|Banned Discord ID:|Conflicting user ID:|Conflicting Discord ID:|IP:|Alt account:)/i);
+
+  let mainReason = workingReason;
+  if (metadataStart !== -1) {
+    mainReason = workingReason.slice(0, metadataStart).trim().replace(/[|\s]+$/, '');
+    const metadataSection = workingReason.slice(metadataStart).trim();
+
+    for (const part of metadataSection.split(' | ')) {
+      const trimmed = part.trim();
+      const colonIndex = trimmed.indexOf(':');
+
+      if (colonIndex !== -1) {
+        metadata.push({
+          key: trimmed.substring(0, colonIndex).trim(),
+          value: trimmed.substring(colonIndex + 1).trim(),
+        });
+      } else if (trimmed) {
+        metadata.push({ key: '', value: trimmed });
+      }
+    }
+  }
+
+  return { mainReason: mainReason || reason, metadata, supportSentence };
+}
+
 export default function BannedPage() {
   const navigate = useNavigate();
   const { settings } = useSettings();
@@ -63,6 +103,8 @@ export default function BannedPage() {
   }, [navigate]);
 
   const banDate = useMemo(() => formatBanDate(banState?.bannedAt), [banState?.bannedAt]);
+
+  const parsedReason = useMemo(() => parseBanReason(banState?.reason), [banState?.reason]);
 
   const handleLogout = async () => {
     try {
@@ -114,10 +156,41 @@ export default function BannedPage() {
                 <span className="text-xs font-medium text-[#95a1ad] uppercase tracking-wider">
                   Reason
                 </span>
-                <div className="border border-[#2e3337]/50 bg-[#11141a] rounded-lg p-4">
-                  <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">
-                    {banState?.reason || 'No reason provided.'}
-                  </p>
+                <div className="border border-[#2e3337]/50 bg-[#11141a] rounded-lg p-4 space-y-3">
+                  {/* Main reason sentence */}
+                  {parsedReason.mainReason && (
+                    <p className="text-sm text-white leading-relaxed">
+                      {parsedReason.mainReason}
+                    </p>
+                  )}
+
+                  {/* Metadata as clean stacked list */}
+                  {parsedReason.metadata.length > 0 && (
+                    <div className="pt-2 border-t border-[#2e3337]/50 space-y-1.5">
+                      {parsedReason.metadata.map((item, index) => (
+                        <div key={`${item.key}-${index}`} className="flex flex-wrap gap-x-2 text-xs">
+                          <span className="text-[#95a1ad]">{item.key}:</span>
+                          <span className="text-white font-mono">{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Support ticket sentence */}
+                  {parsedReason.supportSentence && (
+                    <div className="pt-2 border-t border-[#2e3337]/50">
+                      <p className="text-sm text-[#95a1ad] leading-relaxed">
+                        {parsedReason.supportSentence}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Fallback for plain strings */}
+                  {!parsedReason.mainReason && !parsedReason.metadata.length && (
+                    <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">
+                      {banState?.reason || 'No reason provided.'}
+                    </p>
+                  )}
                 </div>
               </div>
 
