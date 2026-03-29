@@ -30,6 +30,7 @@ import {
 import {
   Settings,
   RefreshCw,
+  Loader2,
   AlertCircle,
   Save,
   Archive,
@@ -49,7 +50,8 @@ import {
   CircuitBoard,
   Rocket,
   Trash,
-  X
+  X,
+  Globe
 } from 'lucide-react';
 import axios from 'axios';
 import { useSettings } from '../../hooks/useSettings';
@@ -404,6 +406,100 @@ function BackupsDialog({ isOpen, onClose }) {
   );
 }
 
+function SFTPModeSettings() {
+  const { toast } = useToast();
+  const [selectedMode, setSelectedMode] = useState('node');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['sftp-settings'],
+    queryFn: async () => {
+      const response = await axios.get('/api/settings/sftp');
+      return response.data;
+    }
+  });
+
+  useEffect(() => {
+    if (data?.mode) {
+      setSelectedMode(data.mode);
+    }
+  }, [data]);
+
+  const handleModeChange = async (mode) => {
+    if (mode === selectedMode || isSaving) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await axios.patch('/api/settings/sftp', { mode });
+      setSelectedMode(mode);
+      toast({
+        title: 'SFTP mode updated',
+        description: mode === 'allocation'
+          ? 'SFTP now uses the primary allocation IP.'
+          : 'SFTP now uses the Pterodactyl node host.'
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to update SFTP mode',
+        description: err.response?.data?.error || 'Unable to save the SFTP IP mode right now.'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Upload className="w-4 h-4" />
+          SFTP IP Mode
+        </CardTitle>
+        <CardDescription>
+          Controls which IP is shown in SFTP connection details across server pages.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Button
+          variant={selectedMode === 'node' ? 'default' : 'outline'}
+          className="w-full justify-start"
+          disabled={isLoading || isSaving}
+          onClick={() => handleModeChange('node')}
+        >
+          {isLoading || (isSaving && selectedMode !== 'node') ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Server className="w-4 h-4 mr-2" />
+          )}
+          Node host
+        </Button>
+
+        <Button
+          variant={selectedMode === 'allocation' ? 'default' : 'outline'}
+          className="w-full justify-start"
+          disabled={isLoading || isSaving}
+          onClick={() => handleModeChange('allocation')}
+        >
+          {isLoading || (isSaving && selectedMode !== 'allocation') ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Globe className="w-4 h-4 mr-2" />
+          )}
+          Allocation IP
+        </Button>
+
+        <div className="rounded-md border border-neutral-800 bg-neutral-900/60 p-3 text-sm text-neutral-400 space-y-1">
+          <p><span className="text-white">Node host:</span> uses `sftp_details.ip` from Pterodactyl.</p>
+          <p><span className="text-white">Allocation IP:</span> uses the server primary allocation IP, useful behind a proxy.</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminOverview() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [configContent, setConfigContent] = useState('');
@@ -616,6 +712,7 @@ export default function AdminOverview() {
 
           {/* Quick Actions Section */}
           <div className="space-y-6">
+            <SFTPModeSettings />
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>

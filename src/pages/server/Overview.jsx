@@ -997,6 +997,33 @@ export default function ConsolePage() {
                   </p>
                 </div>
               </div>
+
+              {(() => {
+                const sftpIp = server?.sftp_details?.ip;
+                const sftpPort = server?.sftp_details?.port;
+                const sftpUsername = userData?.user?.Username && server?.identifier 
+                  ? `${userData.user.Username}.${server.identifier}` 
+                  : null;
+                const canConnect = sftpIp && sftpPort && sftpUsername;
+
+                const handleOpenSftp = () => {
+                  if (!canConnect) return;
+                  const url = `sftp://${encodeURIComponent(sftpUsername)}@${sftpIp}:${sftpPort}`;
+                  window.location.href = url;
+                };
+
+                return (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-full mt-2"
+                    disabled={!canConnect}
+                    onClick={handleOpenSftp}
+                  >
+                    Open in SFTP Client
+                  </Button>
+                );
+              })()}
             </div>
           </PopoverContent>
         </Popover>
