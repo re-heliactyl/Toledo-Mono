@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -51,7 +51,8 @@ import {
   Rocket,
   Trash,
   X,
-  Globe
+  Globe,
+  Zap
 } from 'lucide-react';
 import axios from 'axios';
 import { useSettings } from '../../hooks/useSettings';
@@ -500,6 +501,104 @@ function SFTPModeSettings() {
   );
 }
 
+function AFKSettings() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [enabled, setEnabled] = useState(false);
+  const [dailyCap, setDailyCap] = useState(45);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-afk-config'],
+    queryFn: async () => {
+      const response = await axios.get('/api/admin/afk/config');
+      return response.data;
+    }
+  });
+
+  useEffect(() => {
+    if (data?.enabled !== undefined) {
+      setEnabled(data.enabled);
+    }
+    if (data?.dailyCap !== undefined) {
+      setDailyCap(data.dailyCap);
+    }
+  }, [data]);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await axios.post('/api/admin/afk/config', { enabled, dailyCap });
+      queryClient.invalidateQueries({ queryKey: ['admin-afk-config'] });
+      queryClient.invalidateQueries({ queryKey: ['afk-config'] });
+      toast({
+        title: 'AFK settings updated',
+        description: enabled ? `AFK is now enabled with a daily cap of ${dailyCap} coins.` : 'AFK is now disabled.'
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to update AFK settings',
+        description: err.response?.data?.error || 'Unable to save AFK settings right now.'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Zap className="w-4 h-4" />
+          AFK Coins
+        </CardTitle>
+        <CardDescription>
+          Enable or disable the AFK coins feature and set daily earning limits.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Enable AFK</span>
+          <Button
+            variant={enabled ? 'default' : 'outline'}
+            size="sm"
+            disabled={isLoading}
+            onClick={() => setEnabled(!enabled)}
+          >
+            {enabled ? 'Enabled' : 'Disabled'}
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="dailyCap" className="text-sm font-medium">Daily Cap</label>
+          <Input
+            id="dailyCap"
+            type="number"
+            value={dailyCap}
+            onChange={(e) => setDailyCap(Number(e.target.value))}
+            min={1}
+            disabled={isLoading}
+            className="bg-neutral-950"
+          />
+          <p className="text-xs text-neutral-500">
+            Maximum coins a user can earn per day while AFK rewards are enabled.
+          </p>
+        </div>
+
+        <Button onClick={handleSave} disabled={isSaving} className="w-full">
+          {isSaving ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4 mr-2" />
+          )}
+          Save Settings
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminOverview() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [configContent, setConfigContent] = useState('');
@@ -713,6 +812,7 @@ export default function AdminOverview() {
           {/* Quick Actions Section */}
           <div className="space-y-6">
             <SFTPModeSettings />
+            <AFKSettings />
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>

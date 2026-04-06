@@ -1,13 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Coins, Clock, History, AlertCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Coins, Clock, AlertCircle, Zap } from 'lucide-react';
+import axios from 'axios';
 
 export default function AFKPage() {
   const [connected, setConnected] = useState(false);
   const [nextReward, setNextReward] = useState(60000);
-  const [coinsPerMinute, setCoinsPerMinute] = useState(1.5);
+  const [coinsPerMinute, setCoinsPerMinute] = useState(1);
   const [totalEarned, setTotalEarned] = useState(0);
   const [sessionTime, setSessionTime] = useState(0);
   const [error, setError] = useState('');
+
+  const { data: afkConfig, isLoading: loadingConfig } = useQuery({
+    queryKey: ['afk-config'],
+    queryFn: async () => {
+      const response = await axios.get('/api/afk/config');
+      return response.data;
+    }
+  });
 
   useEffect(() => {
     const ws = new WebSocket('/ws');
@@ -32,6 +42,10 @@ export default function AFKPage() {
         setError('You must be logged in to earn AFK rewards');
       } else if (event.code === 4002) {
         setError('AFK rewards are already running in another tab');
+      } else if (event.code === 4003) {
+        setError('AFK is currently disabled by the administrator');
+      } else if (event.code === 4004) {
+        setError(`Daily cap of ${afkConfig?.dailyCap || 0} coins reached. Come back tomorrow!`);
       } else {
         setError('Connection lost. Please refresh the page.');
       }
@@ -46,7 +60,7 @@ export default function AFKPage() {
       ws.close();
       clearInterval(interval);
     };
-  }, []);
+  }, [afkConfig]);
 
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
@@ -55,12 +69,33 @@ export default function AFKPage() {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  if (loadingConfig) {
+    return (
+      <div className="space-y-6 p-6 max-w-screen-2xl mx-auto">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-7 w-48 bg-[#202229] animate-pulse rounded mb-2" />
+            <div className="h-4 w-72 bg-[#202229] animate-pulse rounded" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="border border-[#2e3337] rounded-lg bg-transparent p-4">
+              <div className="h-4 w-24 bg-[#202229] animate-pulse rounded mb-2" />
+              <div className="h-8 w-32 bg-[#202229] animate-pulse rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-6 max-w-screen-2xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Earn coins (AFK page)</h1>
-          <p className="text-[#95a1ad]">Earn coins passively by keeping this page open</p>
+          <p className="text-[#95a1ad]">Earn coins passively by keeping this page open, up to the daily cap</p>
         </div>
         <div className={`py-1 px-4 text-xs rounded-md ${connected ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
           {connected ? 'Connected' : 'Connection failure'}
@@ -71,6 +106,13 @@ export default function AFKPage() {
         <div className="rounded-md border border-red-500/20 bg-red-500/10 text-red-500 p-3 flex items-start">
           <AlertCircle className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" />
           <span className="text-sm">{error}</span>
+        </div>
+      )}
+
+      {!afkConfig?.enabled && !error && (
+        <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 text-yellow-500 p-3 flex items-start">
+          <Zap className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" />
+          <span className="text-sm">AFK is currently disabled by the administrator.</span>
         </div>
       )}
 
@@ -107,6 +149,27 @@ export default function AFKPage() {
           </div>
         </div>
       </div>
+
+      {afkConfig?.dailyCap > 0 && (
+        <div className="border border-[#2e3337] rounded-lg bg-transparent">
+          <div className="p-4 pb-3 border-b border-[#2e3337]">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#202229] border border-white/5">
+                <Zap className="w-4 h-4 text-[#95a1ad]" />
+              </div>
+              <h3 className="font-normal text-sm">Daily Limit</h3>
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="text-2xl font-semibold">
+              {afkConfig.dailyCap} coins
+            </div>
+            <p className="text-xs text-[#95a1ad] mt-1">
+              Maximum coins you can earn per day
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="border border-[#2e3337] rounded-lg bg-transparent">
         <div className="p-4 pb-3 border-b border-[#2e3337]">

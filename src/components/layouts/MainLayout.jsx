@@ -3,7 +3,8 @@ import { Link, useLocation, useParams, useNavigate, Outlet } from 'react-router-
 import { AnimatePresence, motion } from 'framer-motion';
 import axios from 'axios';
 import { useSettings } from '../../hooks/useSettings';
-import { Menu, X } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Menu, X, Zap } from 'lucide-react';
 import {
   ServerStackIcon, WindowIcon, FolderIcon, GlobeAltIcon, PuzzlePieceIcon,
   CloudArrowDownIcon, UsersIcon, Cog6ToothIcon, CubeIcon,
@@ -176,12 +177,22 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   }, [id, showServerSection, servers, subuserServers]);
 
   // Navigation items for both Heliactyl sections
+  const { data: afkConfig } = useQuery({
+    queryKey: ['afk-config'],
+    queryFn: async () => {
+      const response = await axios.get('/api/afk/config');
+      return response.data;
+    },
+    enabled: !showServerSection
+  });
+
   const iconNavItems = [
     { icon: HomeIcon, label: 'Dashboard', path: '/' },
     { icon: ServerIcon, label: 'Servers', path: '/servers' },
     { icon: WalletIcon, label: 'Wallet', path: '/wallet' },
     { icon: CircleStackIcon, label: 'Store', path: '/coins/store' },
     { icon: GiftIcon, label: 'Daily rewards', path: '/coins/daily' },
+    ...(afkConfig?.enabled ? [{ icon: Zap, label: 'AFK', path: '/coins/afk' }] : []),
     ...(settings?.features?.boosts !== false ? [{ icon: BoltIcon, label: 'Boosts', path: '/boosts' }] : []),
     { icon: TicketIcon, label: 'Support', path: '/support' }
   ];
