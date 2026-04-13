@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Coins, Clock, AlertCircle, Zap } from 'lucide-react';
 import axios from 'axios';
+import { AlertCircle, Clock, Coins, Zap } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function AFKPage() {
   const [connected, setConnected] = useState(false);
@@ -16,8 +16,11 @@ export default function AFKPage() {
     queryFn: async () => {
       const response = await axios.get('/api/afk/config');
       return response.data;
-    }
+    } 
   });
+
+  const afkConfigRef = useRef(afkConfig);
+  useEffect(() => { afkConfigRef.current = afkConfig; }, [afkConfig]);
 
   useEffect(() => {
     const ws = new WebSocket('/ws');
@@ -45,7 +48,7 @@ export default function AFKPage() {
       } else if (event.code === 4003) {
         setError('AFK is currently disabled by the administrator');
       } else if (event.code === 4004) {
-        setError(`Daily cap of ${afkConfig?.dailyCap || 0} coins reached. Come back tomorrow!`);
+        setError(`Daily cap of ${afkConfigRef.current?.dailyCap || 0} coins reached. Come back tomorrow!`);
       } else {
         setError('Connection lost. Please refresh the page.');
       }
@@ -60,7 +63,7 @@ export default function AFKPage() {
       ws.close();
       clearInterval(interval);
     };
-  }, [afkConfig]);
+  }, []);
 
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
