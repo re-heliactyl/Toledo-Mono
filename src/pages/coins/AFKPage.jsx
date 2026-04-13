@@ -36,6 +36,10 @@ export default function AFKPage() {
         setNextReward(data.nextRewardIn);
         setCoinsPerMinute(data.coinsPerMinute);
         setTotalEarned(prev => prev + (data.nextRewardIn === 0 ? data.coinsPerMinute : 0));
+      } else if (data.type === 'daily_cap_reached') {
+        setConnected(false);
+        setError(`Daily cap of ${data.dailyCap} coins reached. Come back tomorrow!`);
+        ws.close();
       }
     };
 
