@@ -132,15 +132,18 @@ function SystemStats() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['system-stats'],
     queryFn: async () => {
-      const [servers, users, nodes] = await Promise.all([
+      const [servers, users, nodes, locationCounts] = await Promise.all([
         axios.get('/api/servers'),
         axios.get('/api/users'),
-        axios.get('/api/nodes')
+        axios.get('/api/nodes'),
+        axios.get('/api/locations')
       ]);
+
       return {
         servers: servers.data.meta.pagination.total || 0,
         users: users.data.meta.pagination.total || 0,
-        nodes: nodes.data.meta.pagination.total || 0
+        nodes: locationCounts.data?.nodes || 0,
+        locations: locationCounts.data?.locations || 0
       };
     },
     refetchInterval: 60000
@@ -149,11 +152,12 @@ function SystemStats() {
   const statCards = [
     { icon: Server, label: 'Total Servers', value: stats?.servers || 0 },
     { icon: Users, label: 'Total Users', value: stats?.users || 0 },
+    { icon: Globe, label: 'Locations', value: stats?.locations || 0 },
     { icon: CircuitBoard, label: 'Active Nodes', value: stats?.nodes || 0 }
   ];
 
 return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {statCards.map((stat) => (
         <Card key={stat.label}>
           <CardContent className="pt-6">
