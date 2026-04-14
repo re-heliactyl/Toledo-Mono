@@ -321,23 +321,38 @@ export default function UsersPage() {
     refetchInterval: 30000 // Refresh every 30 seconds
   });
 
+  // Fetch discord ID map for search
+  const { data: discordIdMap } = useQuery({
+    queryKey: ['discordIds'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/users/bulk/discord-ids');
+      return data;
+    },
+    refetchInterval: 30000
+  });
+
   // Filter and sort users
   const filteredUsers = useMemo(() => {
     if (!users) return [];
 
-    return users.filter(user =>
-      user.attributes.username.toLowerCase().includes(search.toLowerCase()) ||
-      user.attributes.email.toLowerCase().includes(search.toLowerCase()) ||
-      user.attributes.first_name.toLowerCase().includes(search.toLowerCase()) ||
-      user.attributes.last_name.toLowerCase().includes(search.toLowerCase())
-    ).sort((a, b) => {
+    return users.filter(user => {
+      const term = search.toLowerCase();
+      const discordId = discordIdMap?.[user.attributes.id] || '';
+      return (
+        user.attributes.username.toLowerCase().includes(term) ||
+        user.attributes.email.toLowerCase().includes(term) ||
+        user.attributes.first_name.toLowerCase().includes(term) ||
+        user.attributes.last_name.toLowerCase().includes(term) ||
+        discordId.toLowerCase().includes(term)
+      );
+    }).sort((a, b) => {
       // Sort by admin status first, then by username
       if (a.attributes.root_admin !== b.attributes.root_admin) {
         return b.attributes.root_admin ? 1 : -1;
       }
       return a.attributes.username.localeCompare(b.attributes.username);
     });
-  }, [users, search]);
+  }, [users, search, discordIdMap]);
 
   const paginatedUsers = filteredUsers.slice(
     (currentPage - 1) * parseInt(perPage),
