@@ -546,6 +546,7 @@ function ServerCard({ server, wsStatus, stats }) {
 
   const status = wsStatus?.[globalIdentifier] || 'offline';
   const serverStats = stats?.[globalIdentifier] || { cpu: 0, memory: 0, disk: 0 };
+  const isSuspended = server?.attributes?.suspended;
 
   const handleCardClick = () => {
     navigate(`/server/${globalIdentifier}/overview`);
@@ -553,7 +554,7 @@ function ServerCard({ server, wsStatus, stats }) {
 
   return (
     <div
-      className="border border-[#2e3337]/50 hover:scale-[1.01] hover:border-[#2e3337] rounded-lg bg-transparent transition duration-200 hover:border-white/10 cursor-pointer relative group"
+      className={`border rounded-lg bg-transparent transition duration-200 cursor-pointer relative group ${isSuspended ? 'border-red-500/30 hover:border-red-500/50' : 'border-[#2e3337]/50 hover:scale-[1.01] hover:border-[#2e3337] hover:border-white/10'}`}
       onClick={handleCardClick}
     >
       <div className="p-4 pb-3 flex items-start justify-between">
@@ -564,9 +565,9 @@ function ServerCard({ server, wsStatus, stats }) {
           <div>
             <h3 className="font-medium text-sm">{globalName || 'Unnamed Server'}</h3>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <div className={`h-1.5 w-1.5 rounded-full ${statusColors[status]}`}></div>
-              <p className="text-xs text-[#95a1ad]">
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+              <div className={`h-1.5 w-1.5 rounded-full ${isSuspended ? 'bg-red-500' : statusColors[status]}`}></div>
+              <p className={`text-xs ${isSuspended ? 'text-red-400' : 'text-[#95a1ad]'}`}>
+                {isSuspended ? 'Suspended' : status.charAt(0).toUpperCase() + status.slice(1)}
               </p>
             </div>
           </div>

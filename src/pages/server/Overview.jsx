@@ -322,6 +322,7 @@ export default function ConsolePage() {
   const reconnectTimeoutRef = useRef(null);
   const intentionalCloseRef = useRef(false);
   const connectionInFlightRef = useRef(false);
+  const isSuspendedRef = useRef(false);
 
   const { data: userData } = useQuery({
     queryKey: ['user'],
@@ -388,6 +389,22 @@ export default function ConsolePage() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    isSuspendedRef.current = server?.is_suspended || false;
+    if (server?.is_suspended) {
+      intentionalCloseRef.current = true;
+      setIsConnecting(false);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+    }
+  }, [server?.is_suspended]);
 
   const renewalNextAt = renewalStatus?.nextRenewalAt ? new Date(renewalStatus.nextRenewalAt).getTime() : null;
   const renewalDeleteAt = renewalStatus?.autoDeleteAt ? new Date(renewalStatus.autoDeleteAt).getTime() : null;
@@ -577,7 +594,8 @@ export default function ConsolePage() {
         !mounted.current ||
         intentionalCloseRef.current ||
         reconnectTimeoutRef.current ||
-        retryCountRef.current >= RETRY_COUNT
+        retryCountRef.current >= RETRY_COUNT ||
+        isSuspendedRef.current
       ) {
         return;
       }
@@ -601,6 +619,7 @@ export default function ConsolePage() {
         !mounted.current ||
         intentionalCloseRef.current ||
         connectionInFlightRef.current ||
+        isSuspendedRef.current ||
         (existingSocket && (
           existingSocket.readyState === WebSocket.OPEN ||
           existingSocket.readyState === WebSocket.CONNECTING
@@ -913,6 +932,22 @@ export default function ConsolePage() {
         </TooltipProvider>
       </div>
       {isConnecting && <ConnectionOverlay />}
+
+      {server?.is_suspended && (
+        <Card className="border-red-500/30 bg-red-500/5">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="flex-shrink-0">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-red-200">This server is suspended</p>
+              <p className="text-xs text-red-200/60 mt-0.5">
+                Your server has been suspended and is currently inaccessible. If you believe this is an error, please contact support.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex items-center gap-6 p-4 rounded-lg border border-white/5">
         <div className="flex items-center gap-2">
