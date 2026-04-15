@@ -380,13 +380,14 @@ export default function AdminEggs() {
                     <TableHead>Nest</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Minimum Resources</TableHead>
+                    <TableHead>Maximum Resources</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredEggs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-neutral-500 py-8">
+                      <TableCell colSpan={7} className="text-center text-neutral-500 py-8">
                         {Object.keys(eggsData?.eggs || {}).length === 0 ? (
                           <div className="space-y-2">
                             <Egg className="w-12 h-12 mx-auto text-neutral-600" />
@@ -475,6 +476,26 @@ export default function AdminEggs() {
                               {egg.minimum?.cpu || 0}%
                             </span>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {egg.maximum?.ram || egg.maximum?.disk || egg.maximum?.cpu ? (
+                            <div className="flex items-center gap-3 text-xs text-neutral-400">
+                              <span className="flex items-center gap-1">
+                                <MemoryStick className="w-3 h-3" />
+                                {egg.maximum?.ram || '~'} MB
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <HardDrive className="w-3 h-3" />
+                                {egg.maximum?.disk || '~'} MB
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Cpu className="w-3 h-3" />
+                                {egg.maximum?.cpu || '~'}%
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-neutral-500">No limit</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -642,6 +663,52 @@ export default function AdminEggs() {
                       />
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Maximum RAM (MB)</Label>
+                      <Input
+                        type="number"
+                        value={selectedEgg.maximum?.ram || 0}
+                        onChange={(e) => setSelectedEgg({
+                          ...selectedEgg,
+                          maximum: {
+                            ...selectedEgg.maximum,
+                            ram: parseInt(e.target.value) || 0
+                          }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Maximum Disk (MB)</Label>
+                      <Input
+                        type="number"
+                        value={selectedEgg.maximum?.disk || 0}
+                        onChange={(e) => setSelectedEgg({
+                          ...selectedEgg,
+                          maximum: {
+                            ...selectedEgg.maximum,
+                            disk: parseInt(e.target.value) || 0
+                          }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Maximum CPU (%)</Label>
+                      <Input
+                        type="number"
+                        value={selectedEgg.maximum?.cpu || 0}
+                        onChange={(e) => setSelectedEgg({
+                          ...selectedEgg,
+                          maximum: {
+                            ...selectedEgg.maximum,
+                            cpu: parseInt(e.target.value) || 0
+                          }
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-neutral-500">Set to 0 for no limit.</p>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">

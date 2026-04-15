@@ -104,6 +104,16 @@ export default function WalletPage() {
     enabled: activeTab === 'invoices'
   });
 
+  // Fetch leaderboard
+  const { data: leaderboardData, isLoading: loadingLeaderboard } = useQuery({
+    queryKey: ['leaderboard'],
+    queryFn: async () => {
+      const response = await axios.get('/api/v5/billing/leaderboard');
+      return response.data;
+    },
+    enabled: activeTab === 'leaderboards'
+  });
+
   const formatTransactionDetails = (txn) => {
     if (!txn.details) return 'No details available';
     if (typeof txn.details === 'string') return txn.details;
@@ -578,10 +588,71 @@ export default function WalletPage() {
       )}
 
       {activeTab === 'leaderboards' && (
-        <div className="flex flex-col items-center justify-center py-24 border border-[#2e3337] rounded-lg bg-transparent border-dashed">
-          <Trophy className="w-16 h-16 text-[#2e3337] mb-4" />
-          <h3 className="text-lg font-medium text-white">Leaderboards</h3>
-          <p className="text-[#95a1ad] mt-2">Coming soon to Heliactyl Next</p>
+        <div className="border border-[#2e3337] rounded-lg bg-transparent">
+          <div className="p-4 pb-3 border-b border-[#2e3337]">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#202229] border border-white/5">
+                <Trophy className="w-4 h-4 text-[#95a1ad]" />
+              </div>
+              <h3 className="font-normal text-sm">Top 25 Leaderboard</h3>
+            </div>
+          </div>
+          {loadingLeaderboard ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="w-6 h-6 text-[#95a1ad] animate-spin" />
+            </div>
+          ) : leaderboardData?.leaderboard?.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-[#95a1ad] bg-[#202229]/50 border-b border-[#2e3337]">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Rank</th>
+                      <th className="px-4 py-3 font-medium">Username</th>
+                      <th className="px-4 py-3 font-medium text-right">Coins</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#2e3337]">
+                    {leaderboardData.leaderboard.map((user) => {
+                      const isCurrentUser = leaderboardData.userRank?.username === user.username;
+                      const rankColor = user.rank === 1 ? 'text-[#FFD700]' : user.rank === 2 ? 'text-[#C0C0C0]' : user.rank === 3 ? 'text-[#CD7F32]' : '';
+                      return (
+                        <tr key={user.rank} className={`hover:bg-[#202229]/30 transition-colors ${isCurrentUser ? 'bg-white/5' : ''}`}>
+                          <td className={`px-4 py-3 font-medium ${rankColor}`}>
+                            #{user.rank}
+                          </td>
+                          <td className="px-4 py-3 text-white">
+                            {user.username}
+                          </td>
+                          <td className="px-4 py-3 text-right text-white">
+                            {user.coins.toLocaleString()} <span className="text-[#95a1ad] text-xs">coins</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {leaderboardData?.userRank && !leaderboardData.userRank.inTop && (
+                <div className="p-4 border-t border-[#2e3337] border-dashed">
+                  <p className="text-xs text-[#95a1ad] mb-2">Your Rank</p>
+                  <div className="flex items-center justify-between bg-white/5 rounded-lg px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-white font-medium">#{leaderboardData.userRank.rank}</span>
+                      <span className="text-white">{leaderboardData.userRank.username}</span>
+                    </div>
+                    <span className="text-white">
+                      {leaderboardData.userRank.coins.toLocaleString()} <span className="text-[#95a1ad] text-xs">coins</span>
+                    </span>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center justify-center py-12 text-[#95a1ad]">
+              No data available
+            </div>
+          )}
         </div>
       )}
 
