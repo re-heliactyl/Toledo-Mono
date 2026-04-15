@@ -70,7 +70,11 @@ const AccountPage = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/claim?code=${encodeURIComponent(claimCode)}`);
+      const response = await fetch('/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: claimCode })
+      });
       const data = await response.json();
 
       if (data.error) {
@@ -93,7 +97,11 @@ const AccountPage = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/generate?code=${encodeURIComponent(newCode)}`);
+      const response = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: newCode })
+      });
       const data = await response.json();
 
       if (data.error) {
