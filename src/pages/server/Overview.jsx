@@ -139,7 +139,7 @@ const formatCompactDuration = (ms) => {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
 
   if (days > 0) {
-    return `${days}j ${hours}h`;
+    return `${days}d ${hours}h`;
   }
 
   if (hours > 0) {
