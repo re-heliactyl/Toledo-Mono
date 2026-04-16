@@ -17,6 +17,7 @@ import Overview from '@/pages/server/Overview';
 import FileManagerPage from './pages/server/FileManagerPage';
 import PluginManagerPage from './pages/server/PluginManagerPage';
 import Network from './pages/server/Network';
+import Subdomains from './pages/server/Subdomains';
 import UserManagerPage from './pages/server/UserManagerPage'
 import Players from './pages/server/Players';
 import Backups from './pages/server/Backups';
@@ -298,6 +299,7 @@ export default function App() {
             <Route path="/server/:id/files" element={<FileManagerPage />} />
             <Route path="/server/:id/plugins" element={<PluginManagerPage />} />
             <Route path="/server/:id/network" element={<Network />} />
+            <Route path="/server/:id/subdomains" element={<Subdomains />} />
             <Route path="/server/:id/users" element={<UserManagerPage />} />
             <Route path="/server/:id/players" element={<Players />} />
             <Route path="/server/:id/backups" element={<Backups />} />

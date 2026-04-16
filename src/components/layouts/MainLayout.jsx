@@ -201,6 +201,7 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     { icon: WindowIcon, label: 'Overview', path: `/server/${id}/overview` },
     { icon: FolderIcon, label: 'Files', path: `/server/${id}/files` },
     { icon: GlobeAltIcon, label: 'Network', path: `/server/${id}/network` },
+    { icon: GlobeAltIcon, label: 'Subdomains', path: `/server/${id}/subdomains` },
     { icon: CloudArrowDownIcon, label: 'Backups', path: `/server/${id}/backups` },
     { icon: UsersIcon, label: 'Players', path: `/server/${id}/players` },
     { icon: UsersIcon, label: 'Users', path: `/server/${id}/users` },
