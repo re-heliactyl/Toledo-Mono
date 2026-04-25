@@ -307,9 +307,11 @@ export default function UsersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
+  const [isAllowlistDialogOpen, setIsAllowlistDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [banReason, setBanReason] = useState('');
+  const [allowlistForm, setAllowlistForm] = useState({ ipAddress: '', reason: '' });
 
   // Fetch basic user list only (no coins/resources - those are fetched per-page)
   const { data: users, isLoading: loadingUsers } = useQuery({
@@ -400,6 +402,15 @@ export default function UsersPage() {
       ban: userDetails?.[user.attributes.id]?.ban ?? { isBanned: false, reason: null, bannedAt: null, bannedByUsername: null }
     }));
   }, [paginatedUsers, userDetails]);
+
+  const { data: allowlistData, isLoading: loadingAllowlist } = useQuery({
+    queryKey: ['antiVpnAllowlist', selectedUser?.attributes?.id],
+    queryFn: async () => {
+      const { data } = await axios.get(`/api/users/${selectedUser.attributes.id}/anti-vpn-allowlist`);
+      return data;
+    },
+    enabled: isAllowlistDialogOpen && Boolean(selectedUser?.attributes?.id),
+  });
 
   const invalidateUserQueries = () => {
     queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -560,6 +571,53 @@ export default function UsersPage() {
     setSelectedUser(user);
     setBanReason(user.ban?.reason || '');
     setIsBanDialogOpen(true);
+  };
+
+  const handleAllowlistClick = (user) => {
+    setSelectedUser(user);
+    setAllowlistForm({ ipAddress: '', reason: '' });
+    setIsAllowlistDialogOpen(true);
+  };
+
+  const handleAddAllowlistEntry = async () => {
+    if (!selectedUser) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await axios.post(`/api/users/${selectedUser.attributes.id}/anti-vpn-allowlist`, allowlistForm);
+      setAllowlistForm({ ipAddress: '', reason: '' });
+      queryClient.invalidateQueries({ queryKey: ['antiVpnAllowlist', selectedUser.attributes.id] });
+      toast({
+        title: 'Success',
+        description: 'Anti-VPN exception saved',
+      });
+    } catch (err) {
+      showApiErrorToast(toast, err, 'Failed to save anti-VPN exception');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRemoveAllowlistEntry = async (entryId) => {
+    if (!selectedUser) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await axios.delete(`/api/users/${selectedUser.attributes.id}/anti-vpn-allowlist/${entryId}`);
+      queryClient.invalidateQueries({ queryKey: ['antiVpnAllowlist', selectedUser.attributes.id] });
+      toast({
+        title: 'Success',
+        description: 'Anti-VPN exception removed',
+      });
+    } catch (err) {
+      showApiErrorToast(toast, err, 'Failed to remove anti-VPN exception');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleBanUser = async () => {
@@ -780,6 +838,10 @@ export default function UsersPage() {
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit User
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleAllowlistClick(user)}>
+                                <Shield className="w-4 h-4 mr-2 text-sky-400" />
+                                Anti-VPN Allowlist
+                              </DropdownMenuItem>
                               {user.ban?.isBanned ? (
                                 <DropdownMenuItem onClick={() => handleUnbanUser(user)}>
                                   <Shield className="w-4 h-4 mr-2 text-emerald-500" />
@@ -895,6 +957,120 @@ export default function UsersPage() {
                 {isSubmitting ? 'Applying ban...' : 'Confirm Ban'}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAllowlistDialogOpen} onOpenChange={setIsAllowlistDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Anti-VPN Allowlist - {selectedUser?.attributes?.username}</DialogTitle>
+            <DialogDescription>
+              Allow one exact IP address for this user during login checks only. A reason is required and every change is audited.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-[180px_1fr]">
+              <div className="space-y-2">
+                <label htmlFor="anti-vpn-ip" className="text-sm font-medium">IP address</label>
+                <Input
+                  id="anti-vpn-ip"
+                  value={allowlistForm.ipAddress}
+                  onChange={(event) => setAllowlistForm({ ...allowlistForm, ipAddress: event.target.value })}
+                  placeholder="203.0.113.10"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="anti-vpn-reason" className="text-sm font-medium">Reason</label>
+                <Textarea
+                  id="anti-vpn-reason"
+                  value={allowlistForm.reason}
+                  onChange={(event) => setAllowlistForm({ ...allowlistForm, reason: event.target.value })}
+                  placeholder="False positive confirmed by support ticket..."
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                onClick={handleAddAllowlistEntry}
+                disabled={isSubmitting || allowlistForm.ipAddress.trim().length === 0 || allowlistForm.reason.trim().length < 3}
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                {isSubmitting ? 'Saving...' : 'Save Exception'}
+              </Button>
+            </div>
+
+            <Tabs defaultValue="entries">
+              <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0">
+                <TabsTrigger value="entries">Allowed IPs</TabsTrigger>
+                <TabsTrigger value="audit">Audit History</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="entries" className="space-y-3">
+                {loadingAllowlist ? (
+                  <Skeleton className="h-24 w-full" />
+                ) : allowlistData?.entries?.length > 0 ? (
+                  allowlistData.entries.map((entry) => (
+                    <div key={entry.id} className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{entry.ipAddress}</Badge>
+                            <span className="text-xs text-neutral-500">{entry.users?.length || 0} linked user(s)</span>
+                          </div>
+                          <p className="text-sm text-neutral-300">{entry.reason}</p>
+                          <p className="text-xs text-neutral-500">
+                            Created by {entry.createdByUsername || 'Unknown'} on {new Date(entry.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemoveAllowlistEntry(entry.id)}
+                          disabled={isSubmitting}
+                        >
+                          <Trash className="w-4 h-4 mr-2" />
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>No anti-VPN exceptions are linked to this user.</AlertDescription>
+                  </Alert>
+                )}
+              </TabsContent>
+
+              <TabsContent value="audit">
+                <ScrollArea className="h-64 rounded-lg border border-neutral-800 p-3">
+                  <div className="space-y-3">
+                    {allowlistData?.entries?.flatMap((entry) => entry.audits || []).length > 0 ? (
+                      allowlistData.entries.flatMap((entry) => entry.audits || []).map((audit) => (
+                        <div key={audit.id} className="rounded-md bg-neutral-950/50 p-3 text-sm">
+                          <div className="flex items-center justify-between gap-3">
+                            <Badge variant="outline">{audit.action}</Badge>
+                            <span className="text-xs text-neutral-500">{new Date(audit.createdAt).toLocaleString()}</span>
+                          </div>
+                          <p className="mt-2 text-neutral-300">
+                            {audit.actorUsername || 'Unknown staff'} from {audit.actorIpAddress || 'unknown IP'}
+                          </p>
+                          {audit.newValue?.reason && (
+                            <p className="mt-1 text-xs text-neutral-500">Reason: {audit.newValue.reason}</p>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-neutral-500">No audit events yet.</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
           </div>
         </DialogContent>
       </Dialog>
