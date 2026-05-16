@@ -699,7 +699,12 @@ export default function ServersPage() {
       };
 
       ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
+        let message;
+        try {
+          message = JSON.parse(event.data);
+        } catch {
+          return;
+        }
         handleWebSocketMessage(message, serverId);
       };
 
