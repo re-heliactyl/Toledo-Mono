@@ -1230,23 +1230,23 @@ export default function ConsolePage() {
           icon={MemoryStick}
           title="Memory Usage"
           value={`${stats.memory || 0} MB`}
-          secondaryValue={`${server?.limits.memory || 0} MB Limit`}
+          secondaryValue={`${server?.limits?.memory || 0} MB Limit`}
           chartData={resourceHistory.memory}
           dataKey="value"
           color={CHART_COLORS.memory}
           unit=" MB"
-          domain={[0, server?.limits.memory]}
+          domain={[0, server?.limits?.memory]}
         />
         <ResourceStat
           icon={HardDrive}
           title="Storage Usage"
           value={`${stats.disk || 0} MB`}
-          secondaryValue={`${server?.limits.disk === 0 ? '∞' : server?.limits.disk + ' MB' || 0} Limit`}
+          secondaryValue={`${server?.limits?.disk === 0 ? '∞' : server?.limits?.disk + ' MB' || 0} Limit`}
           chartData={resourceHistory.disk}
           dataKey="value"
           color={CHART_COLORS.disk}
           unit=" MB"
-          domain={server?.limits.disk ? [0, server.limits.disk] : undefined}
+          domain={server?.limits?.disk ? [0, server?.limits?.disk] : undefined}
         />
         <ResourceStat
           icon={Network}
