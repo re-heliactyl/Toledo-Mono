@@ -59,6 +59,8 @@ const SettingsPage = () => {
     }
   });
 
+  const isOwner = !isLoadingServer && (serverData?.meta?.isOwner ?? false);
+
   // Fetch startup variables
   const { data: startupData, isLoading: isLoadingStartup } = useQuery({
     queryKey: ['server', id, 'startup'],
@@ -315,7 +317,7 @@ const SettingsPage = () => {
                       <Button
                         variant="destructive"
                         onClick={() => setShowDeleteDialog(true)}
-                        disabled={deleteServer.isPending}
+                        disabled={deleteServer.isPending || !isOwner}
                         className="mt-2"
                       >
                         {deleteServer.isPending ? (
@@ -325,6 +327,11 @@ const SettingsPage = () => {
                         )}
                         Delete Server
                       </Button>
+                      {!isOwner && (
+                        <p className="text-xs text-neutral-500 mt-2">
+                          Only the server owner can delete this server.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

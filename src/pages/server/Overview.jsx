@@ -332,13 +332,16 @@ export default function ConsolePage() {
     }
   });
 
-  const { data: server, error: serverError } = useQuery({
+  const { data: serverData, error: serverError, isLoading: isLoadingServer } = useQuery({
     queryKey: ['server', id],
     queryFn: async () => {
       const { data } = await axios.get(`/api/server/${id}`);
-      return data.attributes;
+      return data;
     }
   });
+
+  const server = serverData?.attributes ?? null;
+  const isOwner = !isLoadingServer && (serverData?.meta?.isOwner ?? false);
 
   const { data: renewalStatus, error: renewalError, isLoading: isRenewalLoading } = useQuery({
     queryKey: ['server', id, 'renewal'],
@@ -1193,7 +1196,7 @@ export default function ConsolePage() {
 
                 <Button
                   onClick={() => renewServer.mutate()}
-                  disabled={!renewalCanRenew || renewServer.isPending}
+                  disabled={!renewalCanRenew || renewServer.isPending || !isOwner}
                   className="min-w-[180px]"
                 >
                   {renewServer.isPending ? (
@@ -1208,6 +1211,11 @@ export default function ConsolePage() {
                     </>
                   )}
                 </Button>
+                {!isOwner && (
+                  <p className="text-xs text-neutral-500 text-center mt-2">
+                    Only the server owner can renew this server.
+                  </p>
+                )}
               </div>
             </>
           ) : null}
