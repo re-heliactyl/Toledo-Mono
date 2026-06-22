@@ -13,7 +13,7 @@ import {
   ListBulletIcon, ArrowLeftIcon, ArrowTrendingUpIcon, GiftIcon,
   FingerPrintIcon, HomeIcon, BoltIcon, PaperAirplaneIcon, ArrowDownLeftIcon,
   ChevronDownIcon, EllipsisVerticalIcon,
-  ShieldCheckIcon, TicketIcon, SignalIcon, ServerIcon
+  ShieldCheckIcon, TicketIcon, SignalIcon, ServerIcon, TrophyIcon
 } from '@heroicons/react/24/outline';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
@@ -192,6 +192,7 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     { icon: WalletIcon, label: 'Wallet', path: '/wallet' },
     { icon: CircleStackIcon, label: 'Store', path: '/coins/store' },
     { icon: GiftIcon, label: 'Daily rewards', path: '/coins/daily' },
+    { icon: TrophyIcon, label: 'Achievements', path: '/coins/achievements' },
     ...(afkConfig?.enabled ? [{ icon: Zap, label: 'AFK', path: '/coins/afk' }] : []),
     ...(settings?.features?.boosts !== false ? [{ icon: BoltIcon, label: 'Boosts', path: '/boosts' }] : []),
     { icon: TicketIcon, label: 'Support', path: '/support' }
