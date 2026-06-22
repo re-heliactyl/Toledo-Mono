@@ -1076,9 +1076,9 @@ const FileManagerPage = () => {
                             <TableRow className="hover:bg-transparent border-neutral-800/50">
                               <TableHead className="w-12">
                                 <Checkbox
-                                  checked={files.length > 0 && selectedFiles.length === files.length}
+                                  checked={filteredFiles.length > 0 && selectedFiles.length === filteredFiles.length}
                                   onCheckedChange={(checked) => {
-                                    setSelectedFiles(checked ? files.map(f => f.name) : []);
+                                    setSelectedFiles(checked ? filteredFiles.map(f => f.name) : []);
                                   }}
                                 />
                               </TableHead>
@@ -1093,24 +1093,34 @@ const FileManagerPage = () => {
                             {filteredFiles.map((file) => (
                               <TableRow
                                 key={file.name}
-                                className={`group border-neutral-800/30 hover:bg-neutral-800/30 ${selectedFiles.includes(file.name) ? 'bg-primary/5' : ''}`}
+                                className={`group border-neutral-800/30 hover:bg-neutral-800/30 cursor-pointer ${selectedFiles.includes(file.name) ? 'bg-primary/5' : ''}`}
+                                onClick={() => {
+                                  setSelectedFiles(prev =>
+                                    prev.includes(file.name)
+                                      ? prev.filter(f => f !== file.name)
+                                      : [...prev, file.name]
+                                  );
+                                }}
                               >
                                 <TableCell>
-                                  <Checkbox
-                                    checked={selectedFiles.includes(file.name)}
-                                    onCheckedChange={(checked) => {
-                                      setSelectedFiles(checked
-                                        ? [...selectedFiles, file.name]
-                                        : selectedFiles.filter(f => f !== file.name)
-                                      );
-                                    }}
-                                  />
+                                  <span className="inline-flex items-center justify-center p-2 -m-2 cursor-pointer touch-manipulation">
+                                    <Checkbox
+                                      checked={selectedFiles.includes(file.name)}
+                                      onCheckedChange={(checked) => {
+                                        setSelectedFiles(prev => checked
+                                          ? [...prev, file.name]
+                                          : prev.filter(f => f !== file.name)
+                                        );
+                                      }}
+                                    />
+                                  </span>
                                 </TableCell>
                                 <TableCell>
                                   <button
                                     type="button"
                                     className="flex items-center gap-3 cursor-pointer select-none w-full text-left"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       if (file.is_file) handleFileView(file);
                                       else handleNavigateToPath(joinPaths(currentPath, file.name));
                                     }}
@@ -1184,17 +1194,18 @@ const FileManagerPage = () => {
                         >
                           <CardContent className="p-3 flex flex-col items-center text-center gap-2">
                             <div className="w-full flex justify-between items-start">
-                              <Checkbox
-                                checked={selectedFiles.includes(file.name)}
-                                onCheckedChange={(checked) => {
-                                  setSelectedFiles(checked
-                                    ? [...selectedFiles, file.name]
-                                    : selectedFiles.filter(f => f !== file.name)
-                                  );
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="h-4 w-4"
-                              />
+                              <span className="inline-flex items-center justify-center p-2 -m-2 cursor-pointer touch-manipulation" onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                  checked={selectedFiles.includes(file.name)}
+                                  onCheckedChange={(checked) => {
+                                    setSelectedFiles(prev => checked
+                                      ? [...prev, file.name]
+                                      : prev.filter(f => f !== file.name)
+                                    );
+                                  }}
+                                  className="h-4 w-4"
+                                />
+                              </span>
                               <div className="-mr-2 -mt-1">
                                 {renderFileActions(file)}
                               </div>
@@ -1228,32 +1239,32 @@ const FileManagerPage = () => {
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
-              className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40"
+              className="fixed bottom-4 sm:bottom-6 left-4 sm:left-1/2 right-4 sm:right-auto z-40 sm:transform sm:-translate-x-1/2 pb-[env(safe-area-inset-bottom,8px)] sm:pb-0"
             >
-              <Card className="shadow-xl border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <CardContent className="flex items-center gap-3 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
+              <Card className="shadow-xl border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-lg">
+                <CardContent className="flex items-center justify-between sm:justify-start gap-1 sm:gap-2 p-2 sm:p-3">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                     </div>
-                    <span className="text-sm font-medium">
+                    <span className="text-xs sm:text-sm font-medium whitespace-nowrap">
                       {selectedFiles.length} selected
                     </span>
                   </div>
                   
-                  <Separator orientation="vertical" className="h-6" />
+                  <Separator orientation="vertical" className="h-5 sm:h-6 shrink-0" />
                   
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleArchive(selectedFiles)}
-                          className="h-8"
+                          className="h-8 sm:h-8 px-2 sm:px-3"
                         >
-                          <Archive className="h-4 w-4 mr-1.5" />
-                          Archive
+                          <Archive className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1.5" />
+                          <span className="hidden sm:inline">Archive</span>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Create a zip archive of selected files</TooltipContent>
@@ -1269,10 +1280,10 @@ const FileManagerPage = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="h-8 sm:h-8 px-2 sm:px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
-                          <Trash2 className="h-4 w-4 mr-1.5" />
-                          Delete
+                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1.5" />
+                          <span className="hidden sm:inline">Delete</span>
                         </Button>
                       }
                     />
@@ -1283,9 +1294,9 @@ const FileManagerPage = () => {
                           variant="ghost"
                           size="icon"
                           onClick={() => setSelectedFiles([])}
-                          className="h-8 w-8"
+                          className="h-8 w-8 sm:h-8 sm:w-8"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Clear selection</TooltipContent>
