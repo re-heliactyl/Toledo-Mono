@@ -966,20 +966,20 @@ export default function ConsolePage() {
         </Card>
       )}
 
-      <div className="flex items-center gap-6 p-4 rounded-lg border border-white/5">
-        <div className="flex items-center gap-2">
-          <Server className="w-4 h-4 text-neutral-400" />
-          <div>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 p-4 rounded-lg border border-white/5">
+        <div className="flex items-center gap-2 min-w-0">
+          <Server className="w-4 h-4 text-neutral-400 shrink-0" />
+          <div className="min-w-0">
             <p className="text-xs text-neutral-500">Node</p>
-            <p className="text-sm text-white font-medium">{server?.node}</p>
+            <p className="text-sm text-white font-medium truncate">{server?.node}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Network className="w-4 h-4 text-neutral-400" />
-          <div>
+        <div className="flex items-center gap-2 min-w-0">
+          <Network className="w-4 h-4 text-neutral-400 shrink-0" />
+          <div className="min-w-0">
             <p className="text-xs text-neutral-500">IP Address</p>
-            <p className="text-sm text-white font-medium">
+            <p className="text-sm text-white font-medium truncate">
               {server?.relationships?.allocations?.data?.[0]?.attributes?.ip_alias}:
               {server?.relationships?.allocations?.data?.[0]?.attributes?.port}
             </p>
@@ -988,16 +988,16 @@ export default function ConsolePage() {
 
         <Popover>
           <PopoverTrigger asChild>
-            <div className="flex items-center gap-2 cursor-pointer group">
-              <Upload className="w-4 h-4 text-neutral-400" />
-              <div className="flex items-center gap-1">
-                <div>
+            <div className="flex items-center gap-2 cursor-pointer group min-w-0">
+              <Upload className="w-4 h-4 text-neutral-400 shrink-0" />
+              <div className="flex items-center gap-1 min-w-0">
+                <div className="min-w-0">
                   <p className="text-xs text-neutral-500">SFTP</p>
-                  <p className="text-sm text-white font-medium truncate max-w-[150px]">
+                  <p className="text-sm text-white font-medium truncate max-w-[180px] sm:max-w-[240px]">
                     {userData?.user?.Username}.{server?.identifier}
                   </p>
                 </div>
-                <ChevronDown className="h-4 w-4 text-neutral-500 group-hover:text-neutral-300 transition-colors" />
+                <ChevronDown className="h-4 w-4 text-neutral-500 group-hover:text-neutral-300 transition-colors shrink-0" />
               </div>
             </div>
           </PopoverTrigger>
