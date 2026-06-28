@@ -72,13 +72,21 @@ export default function ServerPackagePage() {
   const canIncreaseDisk = (resources?.remaining?.disk || 0) > 0;
   const canIncreaseCPU = (resources?.remaining?.cpu || 0) > 0;
 
+  const effectiveMinRAM = server?.limits?.memory === 0 ? 0 : minRAM;
+  const effectiveMinDisk = server?.limits?.disk === 0 ? 0 : minDisk;
+  const effectiveMinCPU = server?.limits?.cpu === 0 ? 0 : minCPU;
+
   const serverIdentifier = server?.identifier || id;
 
   const handleUpdate = async () => {
     try {
       setIsUpdating(true);
 
-      if (!ram || !disk || !cpu) {
+      if (
+        ram === undefined || ram === null || ram === '' ||
+        disk === undefined || disk === null || disk === '' ||
+        cpu === undefined || cpu === null || cpu === ''
+      ) {
         throw new Error('All resource values are required');
       }
 
@@ -189,20 +197,21 @@ export default function ServerPackagePage() {
 
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#95a1ad]">Min: {minRAM}MB</span>
+              <span className="text-sm text-[#95a1ad]">Min: {effectiveMinRAM}MB</span>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold">{ram}MB</span>
+                <span className="text-lg font-semibold">{ram === 0 ? 'Unlimited' : `${ram}MB`}</span>
                   <span className="text-xs px-3 py-1 rounded-full ml-2 border-white/5 border text-white/70">
-                    Current allocation: {server?.limits?.memory || 0}MB
+                    Current allocation: {server?.limits?.memory === 0 ? 'Unlimited' : `${server?.limits?.memory || 0}MB`}
                 </span>
               </div>
             </div>
             <Slider
               value={[ram]}
-              min={minRAM}
-              max={Math.max(maxRAM, server?.limits?.memory || 0)}
+              aria-label="Memory (RAM) limit"
+              min={effectiveMinRAM}
+              max={Math.max(maxRAM, server?.limits?.memory || 0, effectiveMinRAM)}
               step={128}
-              onValueChange={values => setRam(clampResourceValue(values[0], minRAM, Math.max(maxRAM, server?.limits?.memory || 0)))}
+              onValueChange={values => setRam(clampResourceValue(values[0], effectiveMinRAM, Math.max(maxRAM, server?.limits?.memory || 0, effectiveMinRAM)))}
               className="py-2"
             />
             {!canIncreaseRAM && (
@@ -225,20 +234,21 @@ export default function ServerPackagePage() {
 
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#95a1ad]">Min: {minDisk >= 1024 ? `${(minDisk / 1024).toFixed(1)} GB` : `${minDisk} MB`}</span>
+              <span className="text-sm text-[#95a1ad]">Min: {effectiveMinDisk >= 1024 ? `${(effectiveMinDisk / 1024).toFixed(1)} GB` : `${effectiveMinDisk} MB`}</span>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold">{disk >= 1024 ? `${(disk / 1024).toFixed(1)} GB` : `${disk} MB`}</span>
+                <span className="text-lg font-semibold">{disk === 0 ? 'Unlimited' : (disk >= 1024 ? `${(disk / 1024).toFixed(1)} GB` : `${disk} MB`)}</span>
                   <span className="text-xs px-3 py-1 rounded-full ml-2 border-white/5 border text-white/70">
-                    Current allocation: {(server?.limits?.disk || 0) >= 1024 ? `${((server?.limits?.disk || 0) / 1024).toFixed(1)} GB` : `${server?.limits?.disk || 0} MB`}
+                    Current allocation: {server?.limits?.disk === 0 ? 'Unlimited' : ((server?.limits?.disk || 0) >= 1024 ? `${((server?.limits?.disk || 0) / 1024).toFixed(1)} GB` : `${server?.limits?.disk || 0} MB`)}
                 </span>
               </div>
             </div>
             <Slider
               value={[disk]}
-              min={minDisk}
-              max={Math.max(maxDisk, server?.limits?.disk || 0)}
+              aria-label="Disk Space limit"
+              min={effectiveMinDisk}
+              max={Math.max(maxDisk, server?.limits?.disk || 0, effectiveMinDisk)}
               step={1024}
-              onValueChange={values => setDisk(clampResourceValue(values[0], minDisk, Math.max(maxDisk, server?.limits?.disk || 0)))}
+              onValueChange={values => setDisk(clampResourceValue(values[0], effectiveMinDisk, Math.max(maxDisk, server?.limits?.disk || 0, effectiveMinDisk)))}
               className="py-2"
             />
             {!canIncreaseDisk && (
@@ -261,20 +271,21 @@ export default function ServerPackagePage() {
 
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#95a1ad]">Min: {minCPU}%</span>
+              <span className="text-sm text-[#95a1ad]">Min: {effectiveMinCPU}%</span>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold">{cpu}%</span>
+                <span className="text-lg font-semibold">{cpu === 0 ? 'Unlimited' : `${cpu}%`}</span>
                   <span className="text-xs px-3 py-1 rounded-full ml-2 border-white/5 border text-white/70">
-                    Current allocation: {server?.limits?.cpu || 0}%
+                    Current allocation: {server?.limits?.cpu === 0 ? 'Unlimited' : `${server?.limits?.cpu || 0}%`}
                 </span>
               </div>
             </div>
             <Slider
               value={[cpu]}
-              min={minCPU}
-              max={Math.max(maxCPU, server?.limits?.cpu || 0)}
+              aria-label="CPU limit"
+              min={effectiveMinCPU}
+              max={Math.max(maxCPU, server?.limits?.cpu || 0, effectiveMinCPU)}
               step={5}
-              onValueChange={values => setCpu(clampResourceValue(values[0], minCPU, Math.max(maxCPU, server?.limits?.cpu || 0)))}
+              onValueChange={values => setCpu(clampResourceValue(values[0], effectiveMinCPU, Math.max(maxCPU, server?.limits?.cpu || 0, effectiveMinCPU)))}
               className="py-2"
             />
             {!canIncreaseCPU && (
