@@ -31,9 +31,14 @@ import {
   Settings,
   Terminal,
   Trash2,
-  Variable
+  Variable,
+  Gamepad2,
+  Link2,
+  Pencil,
+  Shield,
+  Users
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const SettingsPage = () => {
@@ -93,6 +98,268 @@ const SettingsPage = () => {
       showApiErrorToast(toast, error, 'Failed to update variables');
     }
   });
+
+  const [editedMinecraftProperties, setEditedMinecraftProperties] = useState({});
+  const [editedMinecraftSpigot, setEditedMinecraftSpigot] = useState({});
+
+  // Fetch Minecraft settings
+  const { data: minecraftData, isLoading: isLoadingMinecraft } = useQuery({
+    queryKey: ['server', id, 'minecraft-settings'],
+    queryFn: async () => {
+      const { data } = await axios.get(`/api/server/${id}/minecraft/settings`);
+      return data;
+    }
+  });
+
+  // Update Minecraft settings mutation
+  const updateMinecraftSettings = useMutation({
+    mutationFn: async (updates) => {
+      await axios.post(`/api/server/${id}/minecraft/settings`, updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['server', id, 'minecraft-settings']);
+      toast({ title: "Success", description: "Minecraft settings updated successfully" });
+      setEditedMinecraftProperties({});
+      setEditedMinecraftSpigot({});
+    },
+    onError: (error) => {
+      showApiErrorToast(toast, error, 'Failed to update Minecraft settings');
+    }
+  });
+
+  const handleMinecraftPropertyChange = (key, value) => {
+    setEditedMinecraftProperties(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const handleMinecraftSpigotChange = (key, value) => {
+    setEditedMinecraftSpigot(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const renderToggleBox = (label, propertyKey, configStringKey, inverted = false) => {
+    const rawVal = editedMinecraftProperties[propertyKey] !== undefined
+      ? editedMinecraftProperties[propertyKey]
+      : (minecraftData?.properties?.[propertyKey] || 'false');
+    
+    const value = inverted ? rawVal === 'false' : rawVal === 'true';
+
+    const handleChange = (newVal) => {
+      const stringVal = inverted ? (newVal ? 'false' : 'true') : (newVal ? 'true' : 'false');
+      handleMinecraftPropertyChange(propertyKey, stringVal);
+    };
+
+    const displayRawValue = editedMinecraftProperties[propertyKey] !== undefined
+      ? editedMinecraftProperties[propertyKey]
+      : (minecraftData?.properties?.[propertyKey] || 'false');
+
+    return (
+      <div className="rounded-lg overflow-hidden border border-white/5 flex flex-col bg-[#111319]">
+        <div className="bg-white text-neutral-900 p-3 flex items-center justify-between h-14">
+          <span className="font-semibold text-sm">{label}</span>
+          <button
+            type="button"
+            onClick={() => handleChange(!value)}
+            className="w-12 h-7 bg-[#1c1e24] border border-white/10 rounded flex items-center p-0.5 relative overflow-hidden focus:outline-none"
+          >
+            <div
+              className={`w-1/2 h-full rounded flex items-center justify-center transition-all duration-200 ${
+                value
+                  ? 'translate-x-full bg-emerald-500'
+                  : 'translate-x-0 bg-rose-500'
+              }`}
+            >
+              {value ? (
+                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+            </div>
+          </button>
+        </div>
+        <div className="bg-[#12141a] px-3 py-1.5 text-[10px] font-mono text-neutral-400 border-t border-white/5">
+          {configStringKey}={displayRawValue}
+        </div>
+      </div>
+    );
+  };
+
+  const renderSpigotToggleBox = (label, spigotKey, configStringKey) => {
+    const rawVal = editedMinecraftSpigot[spigotKey] !== undefined
+      ? editedMinecraftSpigot[spigotKey]
+      : (minecraftData?.spigot?.[spigotKey] || 'false');
+    
+    const value = rawVal === 'true';
+
+    const handleChange = (newVal) => {
+      handleMinecraftSpigotChange(spigotKey, newVal ? 'true' : 'false');
+    };
+
+    return (
+      <div className="rounded-lg overflow-hidden border border-white/5 flex flex-col bg-[#111319]">
+        <div className="bg-white text-neutral-900 p-3 flex items-center justify-between h-14">
+          <span className="font-semibold text-sm">{label}</span>
+          <button
+            type="button"
+            onClick={() => handleChange(!value)}
+            className="w-12 h-7 bg-[#1c1e24] border border-white/10 rounded flex items-center p-0.5 relative overflow-hidden focus:outline-none"
+          >
+            <div
+              className={`w-1/2 h-full rounded flex items-center justify-center transition-all duration-200 ${
+                value
+                  ? 'translate-x-full bg-emerald-500'
+                  : 'translate-x-0 bg-rose-500'
+              }`}
+            >
+              {value ? (
+                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+            </div>
+          </button>
+        </div>
+        <div className="bg-[#12141a] px-3 py-1.5 text-[10px] font-mono text-neutral-400 border-t border-white/5">
+          {configStringKey}={rawVal}
+        </div>
+      </div>
+    );
+  };
+
+  const renderNumberBox = (label, propertyKey, configStringKey, Icon, min = 0) => {
+    const value = editedMinecraftProperties[propertyKey] !== undefined
+      ? editedMinecraftProperties[propertyKey]
+      : (minecraftData?.properties?.[propertyKey] || '0');
+
+    const numValue = parseInt(value) || 0;
+
+    const handleChange = (newVal) => {
+      handleChangeVal(newVal);
+    };
+
+    const handleChangeVal = (newVal) => {
+      handleMinecraftPropertyChange(propertyKey, newVal);
+    };
+
+    return (
+      <div className="rounded-lg overflow-hidden border border-white/5 flex flex-col bg-[#111319]">
+        <div className="bg-white text-neutral-900 p-3 flex items-center justify-between h-14">
+          <span className="font-semibold text-sm">{label}</span>
+          <div className="flex items-center bg-[#1c1e24] rounded border border-white/10 overflow-hidden text-white">
+            <div className="p-1.5 text-neutral-400">
+              <Icon className="w-4 h-4" />
+            </div>
+            <input
+              type="number"
+              value={value}
+              onChange={(e) => handleChangeVal(e.target.value)}
+              className="w-12 bg-transparent text-center text-sm font-semibold border-none outline-none py-1 focus:ring-0 focus:outline-none"
+              min={min}
+            />
+            <div className="flex flex-col border-l border-white/10 text-xs select-none">
+              <button
+                type="button"
+                onClick={() => handleChangeVal(String(Math.max(min, numValue + 1)))}
+                className="px-1.5 py-0.5 hover:bg-white/10 text-neutral-400 border-b border-white/10 text-[9px] font-bold focus:outline-none"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChangeVal(String(Math.max(min, numValue - 1)))}
+                className="px-1.5 py-0.5 hover:bg-white/10 text-neutral-400 text-[9px] font-bold focus:outline-none"
+              >
+                -
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="bg-[#12141a] px-3 py-1.5 text-[10px] font-mono text-neutral-400 border-t border-white/5">
+          {configStringKey}={value}
+        </div>
+      </div>
+    );
+  };
+
+  const renderSelectBox = (label, propertyKey, configStringKey, options) => {
+    const value = editedMinecraftProperties[propertyKey] !== undefined
+      ? editedMinecraftProperties[propertyKey]
+      : (minecraftData?.properties?.[propertyKey] || options[0].value);
+
+    const handleChange = (newVal) => {
+      handleMinecraftPropertyChange(propertyKey, newVal);
+    };
+
+    return (
+      <div className="rounded-lg overflow-hidden border border-white/5 flex flex-col bg-[#111319]">
+        <div className="bg-white text-neutral-900 p-3 flex items-center justify-between h-14 gap-2">
+          <span className="font-semibold text-sm truncate">{label}</span>
+          <Select value={value} onValueChange={handleChange}>
+            <SelectTrigger className="w-32 bg-[#1c1e24] text-white border-white/10 h-8 text-xs font-semibold focus:ring-0 focus:outline-none">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#1c1e24] text-white border-white/10">
+              {options.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value} className="text-xs hover:bg-white/10 cursor-pointer">
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="bg-[#12141a] px-3 py-1.5 text-[10px] font-mono text-neutral-400 border-t border-white/5">
+          {configStringKey}={value}
+        </div>
+      </div>
+    );
+  };
+
+  const renderTextBox = (label, propertyKey, configStringKey, placeholder, Icon) => {
+    const value = editedMinecraftProperties[propertyKey] !== undefined
+      ? editedMinecraftProperties[propertyKey]
+      : (minecraftData?.properties?.[propertyKey] || '');
+
+    const handleChange = (newVal) => {
+      handleMinecraftPropertyChange(propertyKey, newVal);
+    };
+
+    return (
+      <div className="rounded-lg overflow-hidden border border-white/5 flex flex-col bg-[#111319] w-full">
+        <div className="bg-white text-neutral-900 p-3 flex items-center justify-between h-14 gap-4">
+          <span className="font-semibold text-sm truncate shrink-0">{label}</span>
+          <div className="flex items-center bg-[#1c1e24] rounded border border-white/10 overflow-hidden text-white flex-1 max-w-[500px]">
+            {Icon && (
+              <div className="pl-2 text-neutral-400">
+                <Icon className="w-3.5 h-3.5" />
+              </div>
+            )}
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => handleChange(e.target.value)}
+              placeholder={placeholder}
+              className="w-full bg-transparent px-3 py-1 text-xs font-medium border-none outline-none focus:ring-0 focus:outline-none"
+            />
+          </div>
+        </div>
+        <div className="bg-[#12141a] px-3 py-1.5 text-[10px] font-mono text-neutral-400 border-t border-white/5">
+          {configStringKey}="{value}"
+        </div>
+      </div>
+    );
+  };
 
   const handleLogout = async () => {
     const response = await fetch('/api/user/logout', {
@@ -244,6 +511,12 @@ const SettingsPage = () => {
             <Variable className="w-4 h-4" />
             Variables
           </TabsTrigger>
+          {!isLoadingMinecraft && minecraftData?.isMinecraft && (
+            <TabsTrigger value="minecraft" className="flex items-center gap-2">
+              <Gamepad2 className="w-4 h-4" />
+              Minecraft
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="general" className="space-y-4">
@@ -461,6 +734,79 @@ const SettingsPage = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Minecraft Settings Tab */}
+        {!isLoadingMinecraft && minecraftData?.isMinecraft && (
+          <TabsContent value="minecraft" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Minecraft Settings</h2>
+                <p className="text-sm text-neutral-400">Configure your server.properties and spigot.yml</p>
+              </div>
+              <Button
+                onClick={() => updateMinecraftSettings.mutate({ properties: editedMinecraftProperties, spigot: editedMinecraftSpigot })}
+                disabled={(Object.keys(editedMinecraftProperties).length === 0 && Object.keys(editedMinecraftSpigot).length === 0) || updateMinecraftSettings.isPending}
+              >
+                {updateMinecraftSettings.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                Save Changes
+              </Button>
+            </div>
+
+            {/* server.properties label */}
+            <div className="flex items-center gap-2 text-xs text-neutral-500 font-mono">
+              <span className="px-2 py-0.5 bg-white/5 rounded text-neutral-400">server.properties</span>
+            </div>
+
+            {/* Row 1: Slots, Gamemode, Difficulty */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {renderNumberBox('Slots', 'max-players', 'max-players', Users, 1)}
+              {renderSelectBox('Gamemode', 'gamemode', 'gamemode', [
+                { label: 'Survival', value: 'survival' },
+                { label: 'Creative', value: 'creative' },
+                { label: 'Adventure', value: 'adventure' },
+                { label: 'Spectator', value: 'spectator' },
+              ])}
+              {renderSelectBox('Difficulty', 'difficulty', 'difficulty', [
+                { label: 'Easy', value: 'easy' },
+                { label: 'Normal', value: 'normal' },
+                { label: 'Hard', value: 'hard' },
+                { label: 'Peaceful', value: 'peaceful' },
+              ])}
+            </div>
+
+            {/* Row 2: Toggles */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {renderToggleBox('Whitelist', 'white-list', 'white-list')}
+              {renderToggleBox('Cracked', 'online-mode', 'online-mode', true)}
+              {renderToggleBox('Fly', 'allow-flight', 'allow-flight')}
+              {renderToggleBox('Force Gamemode', 'force-gamemode', 'force-gamemode')}
+              {renderNumberBox('Spawn Protection', 'spawn-protection', 'spawn-protection', Shield, 0)}
+              {renderToggleBox('Resource pack required', 'require-resource-pack', 'require-resource-pack')}
+            </div>
+
+            {/* Row 3: Text fields */}
+            <div className="space-y-3">
+              {renderTextBox('Resource pack', 'resource-pack', 'resource-pack', 'https://example.com/resource-pack.zip', Link2)}
+              {renderTextBox('Resource pack prompt', 'resource-pack-prompt', 'resource-pack-prompt', 'Download the server resource pack?', Pencil)}
+            </div>
+
+            {/* spigot.yml section */}
+            {minecraftData?.spigot && Object.keys(minecraftData.spigot).length > 0 || true ? (
+              <>
+                <div className="flex items-center gap-2 text-xs text-neutral-500 font-mono">
+                  <span className="px-2 py-0.5 bg-white/5 rounded text-neutral-400">spigot.yml</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {renderSpigotToggleBox('BungeeCord', 'bungeecord', 'bungeecord')}
+                </div>
+              </>
+            ) : null}
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Delete Server Dialog */}
