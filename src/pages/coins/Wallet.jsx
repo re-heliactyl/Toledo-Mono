@@ -679,37 +679,40 @@ export default function WalletPage() {
               <thead className="text-[#95a1ad] bg-[#202229]/50 border-b border-[#2e3337]">
                 <tr>
                   <th className="px-4 py-3 font-medium">Date</th>
-                  <th className="px-4 py-3 font-medium">Invoice ID</th>
+                  <th className="px-4 py-3 font-medium">Description</th>
                   <th className="px-4 py-3 font-medium text-right">Amount</th>
                   <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#2e3337]">
                 {invoices?.invoices?.length > 0 ? (
-                  invoices.invoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-[#202229]/30 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs text-white/70">
-                        {new Date(inv.date).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-[#95a1ad]">
-                        {inv.id}
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-white">
-                        ${inv.amount.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-[#95a1ad] hover:text-white"
-                          onClick={() => window.open(inv.url, '_blank')}
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          View
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
+                  invoices.invoices.map((inv) => {
+                    const shortId = inv.id.substring(0, 13).toUpperCase();
+                    return (
+                      <tr key={inv.id} className="hover:bg-[#202229]/30 transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs text-white/70">
+                          {new Date(inv.date).toLocaleDateString('en-US')}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#95a1ad] max-w-[200px] truncate">
+                          {inv.description}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium text-white">
+                          ${inv.amount.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-[#95a1ad] hover:text-white"
+                            onClick={() => window.open(`/api/v5/billing/invoices/${inv.id}/download`, '_blank')}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            PDF
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={4} className="px-4 py-8 text-center text-[#95a1ad]">
