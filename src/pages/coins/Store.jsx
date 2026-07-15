@@ -14,7 +14,12 @@ import {
   Rocket,
   Clock,
   Calendar,
-  ChevronDown
+  ChevronDown,
+  Package,
+  Shield,
+  Star,
+  DollarSign,
+  Infinity
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -23,7 +28,7 @@ import { useSettings } from '../../hooks/useSettings';
 export default function StorePage() {
   const queryClient = useQueryClient();
   const { settings } = useSettings();
-  const [activeTab, setActiveTab] = useState('resources');
+  const [activeTab, setActiveTab] = useState('bundles');
   const [loading, setLoading] = useState({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -43,6 +48,16 @@ export default function StorePage() {
     queryKey: ['storeConfig'],
     queryFn: async () => {
       const response = await axios.get('/api/store/config');
+      return response.data;
+    },
+    retry: false
+  });
+
+  // Get bundle subscriptions status
+  const { data: bundleStatus, isLoading: loadingBundles } = useQuery({
+    queryKey: ['bundleStatus'],
+    queryFn: async () => {
+      const response = await axios.get('/api/bundles/status');
       return response.data;
     },
     retry: false
@@ -194,6 +209,25 @@ export default function StorePage() {
       setError(err.response?.data?.error || 'Failed to purchase boost');
     } finally {
       setLoading(prev => ({ ...prev, 'boost': false }));
+    }
+  };
+
+  // Subscription bundle purchase handler - redirects to Stripe
+  const purchaseSubscription = async (type) => {
+    try {
+      setLoading(prev => ({ ...prev, [type]: true }));
+      setError('');
+      setSuccess('');
+
+      const response = await axios.post('/api/bundles/create-checkout', { type });
+
+      // Redirect to Stripe Checkout
+      if (response.data.url) {
+        window.location.href = response.data.url;
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to initiate purchase');
+      setLoading(prev => ({ ...prev, [type]: false }));
     }
   };
 
@@ -422,6 +456,16 @@ export default function StorePage() {
       <div className="border-b border-[#2e3337] overflow-x-auto">
         <div className="flex space-x-2 w-max pb-px">
           <button
+            onClick={() => setActiveTab('bundles')}
+            className={`flex items-center gap-2 px-4 py-2 border-b-2 font-medium transition whitespace-nowrap ${activeTab === 'bundles'
+                ? 'border-white text-white'
+                : 'border-transparent text-[#95a1ad] hover:text-white hover:border-white/20'
+              }`}
+          >
+            <Package className="w-4 h-4" />
+            Bundles
+          </button>
+          <button
             onClick={() => setActiveTab('resources')}
             className={`flex items-center gap-2 px-4 py-2 border-b-2 font-medium transition whitespace-nowrap ${activeTab === 'resources'
                 ? 'border-white text-white'
@@ -445,6 +489,242 @@ export default function StorePage() {
           )}
         </div>
       </div>
+
+      {/* Bundles Tab Content */}
+      {activeTab === 'bundles' && (
+        <div className="space-y-6">
+          {/* Bundle product cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Auto Renew Card */}
+            <div className="border border-[#2e3337] rounded-lg bg-transparent flex flex-col">
+              <div className="p-4 pb-3 border-b border-[#2e3337]">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#202229] border border-white/5">
+                    <Infinity className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <h3 className="font-normal text-sm">Auto Renew</h3>
+                </div>
+              </div>
+              <div className="p-4 pb-3 space-y-4 flex-1">
+                <div className="text-2xl font-semibold">
+                  ${bundleStatus?.prices?.auto_renew?.toFixed(2) || '4.99'}
+                  <span className="text-sm text-[#95a1ad] font-normal"> / 30 days</span>
+                </div>
+                <p className="text-sm text-[#95a1ad]">
+                  Never worry about renewing your servers again. Your servers will be automatically renewed for the entire subscription period.
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-[#95a1ad]">Automatic renewal for all your servers</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-[#95a1ad]">30 days of hassle-free hosting</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-[#95a1ad]">Servers stay online automatically</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="p-4 pt-2">
+                {bundleStatus?.hasAutoRenew ? (
+                  <div className="w-full py-2 text-center rounded-md bg-emerald-500/10 text-emerald-400 text-sm font-medium">
+                    Currently Active
+                  </div>
+                ) : (
+                  <button
+                    className={`w-full py-2 flex items-center justify-center rounded-md font-medium text-sm transition active:scale-95 ${
+                      loading.auto_renew
+                        ? 'bg-white/20 text-white/60 cursor-not-allowed'
+                        : 'bg-white text-black hover:bg-white/90'
+                    }`}
+                    onClick={() => purchaseSubscription('auto_renew')}
+                    disabled={loading.auto_renew}
+                  >
+                    {loading.auto_renew ? (
+                      <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <DollarSign className="w-4 h-4 mr-2" />
+                    )}
+                    Subscribe Now
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Upgraded Pack Card */}
+            <div className="border border-[#2e3337] rounded-lg bg-transparent flex flex-col">
+              <div className="p-4 pb-3 border-b border-[#2e3337]">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#202229] border border-white/5">
+                    <Star className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <h3 className="font-normal text-sm">Upgraded Pack</h3>
+                </div>
+              </div>
+              <div className="p-4 pb-3 space-y-4 flex-1">
+                <div className="text-2xl font-semibold">
+                  ${bundleStatus?.prices?.upgraded_pack?.toFixed(2) || '9.99'}
+                  <span className="text-sm text-[#95a1ad] font-normal"> / 30 days</span>
+                </div>
+                <p className="text-sm text-[#95a1ad]">
+                  Boost your experience with 1.5x multipliers on AFK earnings and increased resource limits.
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-[#95a1ad]">1.5x coins on the AFK page</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-[#95a1ad]">1.5x RAM & Disk purchase limits per server</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-[#95a1ad]">Valid for 30 days</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="p-4 pt-2">
+                {bundleStatus?.hasUpgradedPack ? (
+                  <div className="w-full py-2 text-center rounded-md bg-emerald-500/10 text-emerald-400 text-sm font-medium">
+                    Currently Active
+                  </div>
+                ) : (
+                  <button
+                    className={`w-full py-2 flex items-center justify-center rounded-md font-medium text-sm transition active:scale-95 ${
+                      loading.upgraded_pack
+                        ? 'bg-white/20 text-white/60 cursor-not-allowed'
+                        : 'bg-white text-black hover:bg-white/90'
+                    }`}
+                    onClick={() => purchaseSubscription('upgraded_pack')}
+                    disabled={loading.upgraded_pack}
+                  >
+                    {loading.upgraded_pack ? (
+                      <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <DollarSign className="w-4 h-4 mr-2" />
+                    )}
+                    Subscribe Now
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* God Pack Card */}
+            <div className="border border-[#2e3337] rounded-lg bg-transparent flex flex-col">
+              <div className="p-4 pb-3 border-b border-[#2e3337]">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#202229] border border-white/5">
+                    <Shield className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <h3 className="font-normal text-sm">God Pack</h3>
+                </div>
+              </div>
+              <div className="p-4 pb-3 space-y-4 flex-1">
+                <div className="text-2xl font-semibold">
+                  ${bundleStatus?.prices?.god_pack?.toFixed(2) || '19.99'}
+                  <span className="text-sm text-[#95a1ad] font-normal"> / 30 days</span>
+                </div>
+                <p className="text-sm text-[#95a1ad]">
+                  The ultimate package. Everything from Auto Renew and Upgraded Pack, plus exclusive perks.
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-[#95a1ad]">Everything in Auto Renew</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-[#95a1ad]">Everything in Upgraded Pack</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-[#95a1ad]">Exclusive Discord role</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-[#95a1ad]">Priority support on Discord</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="p-4 pt-2">
+                {bundleStatus?.hasGodPack ? (
+                  <div className="w-full py-2 text-center rounded-md bg-emerald-500/10 text-emerald-400 text-sm font-medium">
+                    Currently Active
+                  </div>
+                ) : (
+                  <button
+                    className={`w-full py-2 flex items-center justify-center rounded-md font-medium text-sm transition active:scale-95 ${
+                      loading.god_pack
+                        ? 'bg-white/20 text-white/60 cursor-not-allowed'
+                        : 'bg-white text-black hover:bg-white/90'
+                    }`}
+                    onClick={() => purchaseSubscription('god_pack')}
+                    disabled={loading.god_pack}
+                  >
+                    {loading.god_pack ? (
+                      <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <DollarSign className="w-4 h-4 mr-2" />
+                    )}
+                    Subscribe Now
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Purchase rules info */}
+          <div className="border border-[#2e3337] rounded-lg bg-transparent">
+            <div className="p-4 pb-3 border-b border-[#2e3337]">
+              <h3 className="font-normal text-lg">Purchase rules</h3>
+            </div>
+            <div className="p-4 space-y-2 text-sm text-[#95a1ad]">
+              <p>
+                <span className="text-white font-medium">God Pack</span> includes everything from Auto Renew and Upgraded Pack.
+                If you already own God Pack, you cannot purchase Auto Renew or Upgraded Pack separately.
+              </p>
+              <p>
+                <span className="text-white font-medium">Auto Renew</span> — if you already have it, you can still purchase
+                Upgraded Pack to add its perks on top. However, you cannot purchase God Pack.
+              </p>
+              <p>
+                <span className="text-white font-medium">Upgraded Pack</span> — if you already have it, you can still purchase
+                Auto Renew to add its perks on top. However, you cannot purchase God Pack.
+              </p>
+              <p className="text-xs text-[#95a1ad] pt-2 border-t border-[#2e3337]">
+                Bundle subscriptions are 30-day passes. At the end of the period, the subscription expires and benefits are removed.
+                Stripe handles recurring billing automatically each month.
+              </p>
+            </div>
+          </div>
+
+          {/* Mantle promotion card */}
+          {bundleStatus?.mantleBundleCard !== false && (
+          <div className="border border-[#2e3337] rounded-lg bg-transparent">
+            <div className="p-4">
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-sm text-[#95a1ad]">
+                  Looking for more performance? <strong className="text-white">Mantle</strong> offers
+                  dedicated French infrastructure with native Intel Xeon performance and NVMe storage.
+                </p>
+                <a
+                  href="https://mantle.overnode.fr"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-shrink-0 px-4 py-2 bg-white text-black hover:bg-white/90 rounded-md font-medium text-sm transition active:scale-95 text-center whitespace-nowrap"
+                >
+                  See offers
+                </a>
+              </div>
+            </div>
+          </div>
+          )}
+        </div>
+      )}
 
       {/* Resources Tab Content */}
       {activeTab === 'resources' && (
@@ -740,14 +1020,16 @@ export default function StorePage() {
           >
             <div className="mb-4">
               <h2 className="text-lg font-medium">
-                {confirmDialog?.type === 'resource' ? 'Confirm Purchase' : 'Confirm Boost'}
+                {confirmDialog?.type === 'resource' ? 'Confirm Purchase' : confirmDialog?.type === 'subscription' ? 'Confirm Subscription' : 'Confirm Boost'}
               </h2>
               <p className="text-[#95a1ad] mt-1">
                 {confirmDialog?.type === 'resource'
                   ? 'Are you sure you want to purchase:'
-                  : confirmDialog?.isScheduled
-                    ? 'Are you sure you want to schedule this boost?'
-                    : 'Are you sure you want to apply this boost?'}
+                  : confirmDialog?.type === 'subscription'
+                    ? 'Are you sure you want to purchase this subscription?'
+                    : confirmDialog?.isScheduled
+                      ? 'Are you sure you want to schedule this boost?'
+                      : 'Are you sure you want to apply this boost?'}
               </p>
             </div>
 
@@ -833,12 +1115,14 @@ export default function StorePage() {
               <button
                 onClick={() => confirmDialog?.type === 'resource'
                   ? buyResource(confirmDialog.resourceType, confirmDialog.amount)
-                  : purchaseBoost()
+                  : confirmDialog?.type === 'subscription'
+                    ? purchaseSubscription(confirmDialog.bundleType)
+                    : purchaseBoost()
                 }
                 className="px-4 py-2 bg-white text-black hover:bg-white/90 rounded-md font-medium text-sm transition active:scale-95 flex items-center justify-center gap-2"
               >
                 <Check className="w-4 h-4" />
-                Confirm {confirmDialog?.type === 'resource' ? 'Purchase' : 'Boost'}
+                Confirm {confirmDialog?.type === 'resource' ? 'Purchase' : confirmDialog?.type === 'subscription' ? 'Subscription' : 'Boost'}
               </button>
             </div>
           </div>
