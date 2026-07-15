@@ -16,6 +16,7 @@ import {
   Check,
   Coins,
   Download,
+  ExternalLink,
   FileText,
   History,
   LayoutDashboard,
@@ -26,10 +27,110 @@ import {
   Trophy,
   Wallet
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSettings } from '../../hooks/useSettings';
 import StakingPage from './Staking';
+
+const SESSION_TOS_KEY = 'ov_tos_accepted';
+
+function TosModal({ open, onAccept, onCancel }) {
+  const [checked, setChecked] = useState(false);
+  const checkboxRef = useRef(null);
+
+  useEffect(() => {
+    if (open) setChecked(false);
+  }, [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onCancel(); }}>
+      <DialogContent className="bg-[#202229] border border-white/5 text-white sm:max-w-lg rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-base">Accept Terms & Conditions</DialogTitle>
+          <DialogDescription className="text-[#95a1ad] text-xs mt-1">
+            Required before any purchase on Overnode Hosting
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-2">
+          <p className="text-sm text-[#95a1ad] leading-relaxed">
+            Before proceeding with a purchase (credit or coins), you must accept
+            the Terms of Service and Terms of Sale of Overnode Hosting.
+          </p>
+
+          <div className="flex flex-col gap-2">
+            <a
+              href="https://overnode.fr/hosting-cgu.html"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between p-3 rounded-lg border border-[#2e3337] hover:border-white/20 hover:bg-white/5 transition-all group"
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#95a1ad]" />
+                <span className="text-sm font-medium">Terms of Service (ToS)</span>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-[#95a1ad] group-hover:text-white transition-colors" />
+            </a>
+            <a
+              href="https://overnode.fr/hosting-cgv.html"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between p-3 rounded-lg border border-[#2e3337] hover:border-white/20 hover:bg-white/5 transition-all group"
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#95a1ad]" />
+                <span className="text-sm font-medium">Terms of Sale</span>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-[#95a1ad] group-hover:text-white transition-colors" />
+            </a>
+          </div>
+
+          {/* Big easy-click checkbox row — entire row is clickable */}
+          <button
+            type="button"
+            onClick={() => setChecked(v => !v)}
+            className={`w-full flex items-center gap-4 p-4 rounded-lg border transition-all text-left ${
+              checked
+                ? 'border-white/30 bg-white/5'
+                : 'border-[#2e3337] hover:border-white/20 hover:bg-white/[0.03]'
+            }`}
+          >
+            <div className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+              checked ? 'bg-white border-white' : 'bg-transparent border-white/30'
+            }`}>
+              {checked && <Check className="w-3 h-3 text-black" strokeWidth={3} />}
+            </div>
+            <span className="text-sm text-[#95a1ad] leading-relaxed">
+              I have read and agree to the{' '}
+              <a href="https://overnode.fr/hosting-cgu.html" target="_blank" rel="noreferrer" className="text-white hover:underline" onClick={e => e.stopPropagation()}>Terms of Service</a>
+              {' '}and the{' '}
+              <a href="https://overnode.fr/hosting-cgv.html" target="_blank" rel="noreferrer" className="text-white hover:underline" onClick={e => e.stopPropagation()}>Terms of Sale</a>
+              {' '}of Overnode Hosting.
+            </span>
+          </button>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button
+            variant="ghost"
+            onClick={onCancel}
+            className="text-[#95a1ad] hover:text-white hover:bg-white/5"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => { if (checked) onAccept(); }}
+            disabled={!checked}
+            className="bg-white text-black hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Check className="w-4 h-4 mr-2" />
+            Confirm
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function WalletPage() {
   const queryClient = useQueryClient();
@@ -40,6 +141,10 @@ export default function WalletPage() {
   const [loading, setLoading] = useState({ checkout: false, purchase: false, transfer: false });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // ToS modal state
+  const [tosOpen, setTosOpen] = useState(false);
+  const pendingActionRef = useRef(null);
 
   // Transfer State
   const [isSendOpen, setIsSendOpen] = useState(false);
@@ -186,13 +291,40 @@ export default function WalletPage() {
     }
   };
 
-  const handleTopUp = async () => {
-    try {
-      if (!amount || parseFloat(amount) < 1) {
-        setError('Minimum top-up amount is $1.00');
-        return;
-      }
+  // Wrap an action behind the ToS gate. If already accepted this session, run immediately.
+  const withTosGate = (action) => {
+    if (sessionStorage.getItem(SESSION_TOS_KEY) === 'true') {
+      action();
+    } else {
+      pendingActionRef.current = action;
+      setTosOpen(true);
+    }
+  };
 
+  const handleTosAccept = () => {
+    sessionStorage.setItem(SESSION_TOS_KEY, 'true');
+    setTosOpen(false);
+    if (pendingActionRef.current) {
+      pendingActionRef.current();
+      pendingActionRef.current = null;
+    }
+  };
+
+  const handleTosCancel = () => {
+    setTosOpen(false);
+    pendingActionRef.current = null;
+  };
+
+  const handleTopUp = () => {
+    if (!amount || parseFloat(amount) < 1) {
+      setError('Minimum top-up amount is $1.00');
+      return;
+    }
+    withTosGate(() => _doTopUp());
+  };
+
+  const _doTopUp = async () => {
+    try {
       setLoading(prev => ({ ...prev, checkout: true }));
       setError('');
       
@@ -212,7 +344,11 @@ export default function WalletPage() {
     }
   };
   
-  const handlePurchaseCoins = async (packageId, priceUsd) => {
+  const handlePurchaseCoins = (packageId, priceUsd) => {
+    withTosGate(() => _doPurchaseCoins(packageId, priceUsd));
+  };
+
+  const _doPurchaseCoins = async (packageId, priceUsd) => {
     try {
       const currentCredit = billingInfo?.balances?.credit_usd || 0;
 
@@ -729,6 +865,13 @@ export default function WalletPage() {
   </DialogContent>
 </Dialog>
 )}
+
+      {/* ToS Acceptance Modal */}
+      <TosModal
+        open={tosOpen}
+        onAccept={handleTosAccept}
+        onCancel={handleTosCancel}
+      />
     </div>
   );
 }

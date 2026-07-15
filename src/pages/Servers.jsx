@@ -46,11 +46,11 @@ function CreateServerModal({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
-  const { data: eggs } = useQuery({
+  const { data: eggsData } = useQuery({
     queryKey: ['eggs'],
     queryFn: async () => {
-      const { data } = await axios.get('/api/v5/eggs');
-      return data;
+      const { data } = await axios.get('/api/eggs');
+      return data.eggs ?? data;
     }
   });
 
@@ -71,11 +71,27 @@ function CreateServerModal({ isOpen, onClose }) {
     enabled: isOpen
   });
 
-  const selectedEgg = Array.isArray(eggs) ? eggs.find(e => e.id === egg) : null;
+  const { data: userResources } = useQuery({
+    queryKey: ['user-resources'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/v5/resources');
+      return data;
+    },
+    enabled: isOpen
+  });
+
+  const selectedEgg = Array.isArray(eggsData) ? eggsData.find(e => e.id === egg) : null;
   const selectedLocation = Array.isArray(locations) ? locations.find(l => l.id === location) : null;
   const filteredNodes = Array.isArray(nodes)
     ? nodes.filter((n) => n.locationId?.toString() === selectedLocation?.id?.toString())
     : [];
+
+  // Compute the max usable resources: remaining user quota, capped by egg maximum if set
+  const remaining = userResources?.remaining ?? {};
+  const eggMax = selectedEgg?.maximum ?? {};
+  const maxRam  = eggMax?.ram  ? Math.min(remaining.ram  ?? 0, eggMax.ram)  : (remaining.ram  ?? 0);
+  const maxDisk = eggMax?.disk ? Math.min(remaining.disk ?? 0, eggMax.disk) : (remaining.disk ?? 0);
+  const maxCpu  = eggMax?.cpu  ? Math.min(remaining.cpu  ?? 0, eggMax.cpu)  : (remaining.cpu  ?? 0);
 
   // Handle clicks outside dropdowns
   useEffect(() => {
@@ -222,10 +238,7 @@ function CreateServerModal({ isOpen, onClose }) {
                     </button>
                     {showEggDropdown && (
                       <div className="absolute z-20 mt-1 w-full bg-[#1c1c1c] border border-[#333] rounded-lg shadow-xl overflow-hidden max-h-60 overflow-y-auto">
-                        <div className="p-2 border-b border-[#333]">
-                          <p className="text-xs text-neutral-400 px-2">Select a software type</p>
-                        </div>
-                        {Array.isArray(eggs) && eggs.map(e => (
+                        {Array.isArray(eggsData) && eggsData.map(e => (
                           <button
                             key={e.id}
                             onClick={() => { setEgg(e.id); setShowEggDropdown(false); }}
@@ -373,7 +386,7 @@ function CreateServerModal({ isOpen, onClose }) {
                     <label className="text-sm text-neutral-400 block font-medium">Memory (MiB)</label>
                     <input
                       type="number"
-                      placeholder="0"
+                      placeholder={maxRam || '0'}
                       value={ram}
                       onChange={e => setRam(e.target.value)}
                       className="w-full bg-[#1c1c1c] border border-[#333] focus:border-white focus:ring-1 focus:ring-white rounded-lg p-3 text-sm transition-all outline-none text-white font-medium"
@@ -384,7 +397,7 @@ function CreateServerModal({ isOpen, onClose }) {
                     <label className="text-sm text-neutral-400 block font-medium">Disk (MiB)</label>
                     <input
                       type="number"
-                      placeholder="0"
+                      placeholder={maxDisk || '0'}
                       value={disk}
                       onChange={e => setDisk(e.target.value)}
                       className="w-full bg-[#1c1c1c] border border-[#333] focus:border-white focus:ring-1 focus:ring-white rounded-lg p-3 text-sm transition-all outline-none text-white font-medium"
@@ -395,7 +408,7 @@ function CreateServerModal({ isOpen, onClose }) {
                     <label className="text-sm text-neutral-400 block font-medium">CPU (%)</label>
                     <input
                       type="number"
-                      placeholder="0"
+                      placeholder={maxCpu || '0'}
                       value={cpu}
                       onChange={e => setCpu(e.target.value)}
                       className="w-full bg-[#1c1c1c] border border-[#333] focus:border-white focus:ring-1 focus:ring-white rounded-lg p-3 text-sm transition-all outline-none text-white font-medium"
