@@ -146,6 +146,10 @@ export default function WalletPage() {
   const [tosOpen, setTosOpen] = useState(false);
   const pendingActionRef = useRef(null);
 
+  // Remaining balance dialog state
+  const [topupRemainingOpen, setTopupRemainingOpen] = useState(false);
+  const [topupRemainingData, setTopupRemainingData] = useState({ packageId: null, priceUsd: 0, remainingAmount: 0 });
+
   // Transfer State
   const [isSendOpen, setIsSendOpen] = useState(false);
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
@@ -352,8 +356,16 @@ export default function WalletPage() {
     try {
       const currentCredit = billingInfo?.balances?.credit_usd || 0;
 
-      // If user doesn't have enough credit, redirect to Stripe checkout first
+      // If user doesn't have enough credit, check if they have some credit balance
       if (currentCredit < priceUsd) {
+        if (currentCredit > 0) {
+          const remainingAmount = priceUsd - currentCredit;
+          setTopupRemainingData({ packageId, priceUsd, remainingAmount });
+          setTopupRemainingOpen(true);
+          return;
+        }
+
+        // If credit balance is 0 or less, redirect to Stripe checkout directly
         setLoading(prev => ({ ...prev, checkout: true }));
         setError('');
         
@@ -386,6 +398,32 @@ export default function WalletPage() {
       setError(err.response?.data?.error || err.message || 'Failed to process purchase');
     } finally {
       setLoading(prev => ({ ...prev, purchase: false, checkout: false }));
+    }
+  };
+
+  const handleTopupRemainingChoice = (choiceAmount) => {
+    setTopupRemainingOpen(false);
+    withTosGate(() => _doTopUpRemaining(choiceAmount));
+  };
+
+  const _doTopUpRemaining = async (choiceAmount) => {
+    try {
+      setLoading(prev => ({ ...prev, checkout: true }));
+      setError('');
+      
+      const response = await axios.post('/api/v5/billing/checkout', {
+        amount_usd: choiceAmount
+      });
+
+      if (response.data.url) {
+        window.location.href = response.data.url;
+      } else {
+        setError('Failed to initiate checkout: No redirect URL provided');
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to initiate checkout');
+    } finally {
+      setLoading(prev => ({ ...prev, checkout: false }));
     }
   };
 
@@ -865,6 +903,48 @@ export default function WalletPage() {
   </DialogContent>
 </Dialog>
 )}
+
+      {/* Topup Remaining Proposal Dialog */}
+      <Dialog open={topupRemainingOpen} onOpenChange={setTopupRemainingOpen}>
+        <DialogContent className="bg-[#202229] border border-white/5 text-white sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Insufficient Credit Balance</DialogTitle>
+            <DialogDescription className="text-[#95a1ad] text-xs mt-1">
+              You do not have enough credit to purchase this package.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-[#95a1ad] leading-relaxed">
+              Your current balance is <span className="text-white font-medium">${(billingInfo?.balances?.credit_usd || 0).toFixed(2)}</span>.
+              The package costs <span className="text-white font-medium">${(topupRemainingData.priceUsd || 0).toFixed(2)}</span>.
+            </p>
+            <p className="text-sm text-[#95a1ad] leading-relaxed">
+              Would you like to top up only the remaining <span className="text-white font-semibold">${(topupRemainingData.remainingAmount || 0).toFixed(2)}</span>, or pay the full price of <span className="text-white font-semibold">${(topupRemainingData.priceUsd || 0).toFixed(2)}</span>?
+            </p>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setTopupRemainingOpen(false)}
+              className="text-[#95a1ad] hover:text-white hover:bg-white/5 sm:mr-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => handleTopupRemainingChoice(topupRemainingData.priceUsd)}
+              className="bg-[#2e3337] hover:bg-[#3e4449] text-white border border-white/5"
+            >
+              Pay in Full (${(topupRemainingData.priceUsd || 0).toFixed(2)})
+            </Button>
+            <Button
+              onClick={() => handleTopupRemainingChoice(topupRemainingData.remainingAmount)}
+              className="bg-white text-black hover:bg-white/90"
+            >
+              Pay Remaining (${(topupRemainingData.remainingAmount || 0).toFixed(2)})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ToS Acceptance Modal */}
       <TosModal
