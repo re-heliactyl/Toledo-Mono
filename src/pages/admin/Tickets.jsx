@@ -31,7 +31,8 @@ import {
   HardDrive,
   MemoryStick,
   Cpu,
-  Clock
+  Clock,
+  Archive
 } from 'lucide-react';
 
 const StatsCard = ({ title, value, className }) => (
@@ -58,16 +59,23 @@ const PriorityBadge = ({ priority }) => {
   );
 };
 
-const StatusBadge = ({ status }) => (
-  <Badge 
-    variant={status === 'open' ? 'success' : 'secondary'}
-    className={status === 'open' ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-gray-500 text-white border-gray-400'}
-  >
-    {status.charAt(0).toUpperCase() + status.slice(1)}
-  </Badge>
-);
+const StatusBadge = ({ status }) => {
+  const variants = {
+    open: 'bg-emerald-500 text-white border-emerald-400',
+    closed: 'bg-gray-500 text-white border-gray-400',
+    archived: 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+  };
+  return (
+    <Badge 
+      variant="outline"
+      className={variants[status] || 'bg-gray-500 text-white border-gray-400'}
+    >
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </Badge>
+  );
+};
 
-function TicketWorkspace({ ticket, onClose, onStatusChange, onPriorityUpdate, replyMutation, replyContent, setReplyContent }) {
+function TicketWorkspace({ ticket, onClose, onStatusChange, onPriorityUpdate, onArchive, replyMutation, replyContent, setReplyContent }) {
   const { settings: publicSettings } = useSettings();
   const { toast } = useToast();
   const messagesEndRef = useRef(null);
@@ -225,7 +233,7 @@ function TicketWorkspace({ ticket, onClose, onStatusChange, onPriorityUpdate, re
               </Select>
             </div>
 
-            <div className="space-y-2 pt-3 border-t border-[#2e3337]/50">
+              <div className="space-y-2 pt-3 border-t border-[#2e3337]/50">
               <label className="text-xs font-medium text-gray-500 uppercase">Status</label>
               <div className="flex gap-2">
                 <StatusBadge status={ticket.status} />
@@ -245,16 +253,33 @@ function TicketWorkspace({ ticket, onClose, onStatusChange, onPriorityUpdate, re
                       </Button>
                     }
                   />
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onStatusChange(ticket.id, 'open')}
-                    className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
-                  >
-                    <RotateCcw className="h-3 w-3 mr-1" /> Reopen
-                  </Button>
-                )}
+                ) : ticket.status === 'closed' ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onStatusChange(ticket.id, 'open')}
+                      className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1" /> Reopen
+                    </Button>
+                    <ConfirmDialog
+                      title="Archive Ticket"
+                      description="Are you sure you want to archive this ticket? It will be hidden from the default ticket list."
+                      onConfirm={() => onArchive(ticket.id)}
+                      variant="destructive"
+                      trigger={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-500/30 text-gray-400 hover:bg-gray-500/20"
+                        >
+                          <Archive className="h-3 w-3 mr-1" /> Archive
+                        </Button>
+                      }
+                    />
+                  </>
+                ) : null}
               </div>
             </div>
           </CardContent>
@@ -610,6 +635,33 @@ export default function AdminSupportDashboard() {
     }
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: async (ticketId) => {
+      const response = await fetch(`/api/tickets/${ticketId}/archive`, {
+        method: 'POST'
+      });
+      if (!response.ok) throw new Error('Failed to archive ticket');
+      return response.json();
+    },
+    onSuccess: () => {
+      setSelectedTicketId(null);
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['ticket'] });
+      queryClient.invalidateQueries({ queryKey: ['ticket-stats'] });
+      toast({
+        title: "Success",
+        description: "Ticket archived successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to archive ticket",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleStatusChange = (ticketId, status) => {
     statusMutation.mutate({ ticketId, status });
   };
@@ -688,11 +740,12 @@ export default function AdminSupportDashboard() {
             <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
-            </SelectContent>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
           </Select>
 
           <Input
@@ -759,6 +812,7 @@ export default function AdminSupportDashboard() {
               onClose={handleCloseWorkspace}
               onStatusChange={handleStatusChange}
               onPriorityUpdate={handlePriorityUpdate}
+              onArchive={archiveMutation.mutate}
               replyMutation={replyMutation}
               replyContent={replyContent}
               setReplyContent={setReplyContent}
@@ -857,7 +911,7 @@ export default function AdminSupportDashboard() {
                             </Button>
                           }
                         />
-                      ) : (
+                      ) : ticket.status === 'closed' ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -865,7 +919,7 @@ export default function AdminSupportDashboard() {
                         >
                           <RotateCcw className="w-4 h-4 text-emerald-500" />
                         </Button>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                 </tr>

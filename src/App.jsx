@@ -318,6 +318,7 @@ export default function App() {
             <Route path="/coins/achievements" element={<Achievements />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/billing/success" element={<BillingSuccess />} />
+            <Route path="/billing/subscription-success" element={<BillingSuccess />} />
 
             <Route path="/account" element={<AccountPage />} />
             <Route path="/passkeys" element={<PasskeyManager />} />

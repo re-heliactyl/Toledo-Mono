@@ -24,6 +24,7 @@ import {
   Plus,
   RefreshCw,
   Send,
+  Shield,
   Trophy,
   Wallet
 } from 'lucide-react';
@@ -193,6 +194,26 @@ export default function WalletPage() {
       return response.data;
     }
   });
+
+  // Fetch bundle subscriptions
+  const { data: bundleStatus } = useQuery({
+    queryKey: ['bundleStatus'],
+    queryFn: async () => {
+      const response = await axios.get('/api/bundles/status');
+      return response.data;
+    }
+  });
+
+  const handleManageSubscription = async () => {
+    try {
+      const response = await axios.get('/api/bundles/portal');
+      if (response.data.url) {
+        window.location.href = response.data.url;
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to open subscription manager');
+    }
+  };
 
   // Fetch transactions
   const { data: transactions, isLoading: loadingTxns } = useQuery({
@@ -513,7 +534,9 @@ export default function WalletPage() {
       {/* Content */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Coin Balance Card - New */}
+          {/* Left column: Coin Balance + Active Bundles stacked */}
+          <div className="flex flex-col gap-6">
+          {/* Coin Balance Card */}
           <div className="border border-[#2e3337] rounded-lg bg-transparent">
             <div className="p-4 pb-3 border-b border-[#2e3337]">
               <div className="flex items-center gap-2">
@@ -524,11 +547,11 @@ export default function WalletPage() {
               </div>
             </div>
             <div className="p-4">
-              <div className="text-3xl font-bold text-white mb-4">
+              <div className="text-3xl font-bold text-white">
                 {(billingInfo?.balances?.coins || 0).toLocaleString()} <span className="text-sm text-[#95a1ad] font-normal">coins</span>
               </div>
               {settings?.features?.coinTransfer !== false && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 mt-4 pt-4 border-t border-[#2e3337]">
                 <button 
                   onClick={() => setIsSendOpen(true)}
                   className="flex-1 py-2 px-3 bg-white text-black hover:bg-white/90 rounded-md font-medium text-sm transition active:scale-95 flex items-center justify-center gap-2"
@@ -546,6 +569,44 @@ export default function WalletPage() {
               </div>
               )}
             </div>
+          </div>
+
+          {/* Active Bundles Card - below Coin Balance */}
+          {bundleStatus?.activePacks && Object.keys(bundleStatus.activePacks).length > 0 && (
+          <div className="border border-[#2e3337] rounded-lg bg-transparent">
+            <div className="p-4 pb-3 border-b border-[#2e3337] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#202229] border border-white/5">
+                  <Shield className="w-4 h-4 text-[#95a1ad]" />
+                </div>
+                <h3 className="font-normal text-sm">Active Bundles</h3>
+              </div>
+            </div>
+            <div className="p-4 space-y-2">
+              {Object.entries(bundleStatus.activePacks).map(([type, pack]) => (
+                <div
+                  key={type}
+                  className="flex items-center justify-between p-3 rounded-lg bg-[#202229]/50 border border-[#2e3337]"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-white capitalize">
+                      {type === 'auto_renew' ? 'Auto Renew' : type === 'upgraded_pack' ? 'Upgraded Pack' : 'God Pack'}
+                    </p>
+                    <p className="text-xs text-[#95a1ad] mt-0.5">
+                      {pack.daysRemaining} day{pack.daysRemaining !== 1 ? 's' : ''} remaining
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleManageSubscription}
+                    className="px-3 py-1.5 text-xs font-medium bg-white text-black rounded-md hover:bg-white/90 transition active:scale-95"
+                  >
+                    Manage
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          )}
           </div>
 
           {/* Balance Card */}
@@ -717,37 +778,40 @@ export default function WalletPage() {
               <thead className="text-[#95a1ad] bg-[#202229]/50 border-b border-[#2e3337]">
                 <tr>
                   <th className="px-4 py-3 font-medium">Date</th>
-                  <th className="px-4 py-3 font-medium">Invoice ID</th>
+                  <th className="px-4 py-3 font-medium">Description</th>
                   <th className="px-4 py-3 font-medium text-right">Amount</th>
                   <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#2e3337]">
                 {invoices?.invoices?.length > 0 ? (
-                  invoices.invoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-[#202229]/30 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs text-white/70">
-                        {new Date(inv.date).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-[#95a1ad]">
-                        {inv.id}
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-white">
-                        ${inv.amount.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-[#95a1ad] hover:text-white"
-                          onClick={() => window.open(inv.url, '_blank')}
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          View
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
+                  invoices.invoices.map((inv) => {
+                    const shortId = inv.id.substring(0, 13).toUpperCase();
+                    return (
+                      <tr key={inv.id} className="hover:bg-[#202229]/30 transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs text-white/70">
+                          {new Date(inv.date).toLocaleDateString('en-US')}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#95a1ad] max-w-[200px] truncate">
+                          {inv.description}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium text-white">
+                          ${inv.amount.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-[#95a1ad] hover:text-white"
+                            onClick={() => window.open(`/api/v5/billing/invoices/${inv.id}/download`, '_blank')}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            PDF
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={4} className="px-4 py-8 text-center text-[#95a1ad]">
