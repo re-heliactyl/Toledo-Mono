@@ -285,6 +285,9 @@ const AuthPage = () => {
         <img
           src={settings?.logo || "https://i.imgur.com/gUUze6A.png"}
           alt={settings?.name || "Heliactyl"}
+          width="160"
+          height="40"
+          fetchpriority="high"
           className="h-10 w-auto hover:opacity-90 transition-opacity"
         />
       </div>

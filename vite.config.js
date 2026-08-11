@@ -53,6 +53,13 @@ export default defineConfig({
         },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
+        manualChunks: {
+          'vendor-motion': ['framer-motion'],
+          'vendor-charts': ['recharts'],
+          'vendor-editor': ['@monaco-editor/react'],
+          'vendor-syntax': ['react-syntax-highlighter'],
+          'vendor-stripe': ['@stripe/stripe-js', '@stripe/react-stripe-js'],
+        },
       }
     },
   },

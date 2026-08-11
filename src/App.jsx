@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AlertTriangle, RefreshCw, Info } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
@@ -12,49 +12,59 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 
+// MainLayout stays eager — it's the app shell rendered on every protected route
 import MainLayout from '@/components/layouts/MainLayout';
-import Overview from '@/pages/server/Overview';
-import FileManagerPage from './pages/server/FileManagerPage';
-import PluginManagerPage from './pages/server/PluginManagerPage';
-import Network from './pages/server/Network';
-import Subdomains from './pages/server/Subdomains';
-import UserManagerPage from './pages/server/UserManagerPage'
-import Players from './pages/server/Players';
-import Backups from './pages/server/Backups';
-import Settings from './pages/server/Settings';
-import Package from './pages/server/Package';
-import Logs from './pages/server/Logs';
 
-import Website from './pages/Website';
-import Banned from './pages/Banned';
+// Lazy-loaded page components (code-split per route)
+const Overview = React.lazy(() => import('@/pages/server/Overview'));
+const FileManagerPage = React.lazy(() => import('./pages/server/FileManagerPage'));
+const PluginManagerPage = React.lazy(() => import('./pages/server/PluginManagerPage'));
+const Network = React.lazy(() => import('./pages/server/Network'));
+const Subdomains = React.lazy(() => import('./pages/server/Subdomains'));
+const UserManagerPage = React.lazy(() => import('./pages/server/UserManagerPage'));
+const Players = React.lazy(() => import('./pages/server/Players'));
+const Backups = React.lazy(() => import('./pages/server/Backups'));
+const Settings = React.lazy(() => import('./pages/server/Settings'));
+const Package = React.lazy(() => import('./pages/server/Package'));
+const Logs = React.lazy(() => import('./pages/server/Logs'));
 
-import Dashboard from './pages/Dashboard';
-import ServersPage from './pages/Servers';
-import Auth from './pages/Auth';
-import TwoFactorVerification from './pages/TwoFactorVerification';
-import NotFound from './pages/NotFound';
-import Boosts from './pages/Boosts';
+const Website = React.lazy(() => import('./pages/Website'));
+const Banned = React.lazy(() => import('./pages/Banned'));
 
-import AFKPage from './pages/coins/AFKPage';
-import Store from './pages/coins/Store';
-import Staking from './pages/coins/Staking';
-import Daily from './pages/coins/Daily';
-import Achievements from './pages/coins/Achievements';
-import Wallet from './pages/coins/Wallet';
-import BillingSuccess from './pages/billing/Success';
-import AccountPage from './pages/Account';
-import PasskeyManager from './pages/Passkeys';
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const ServersPage = React.lazy(() => import('./pages/Servers'));
+const Auth = React.lazy(() => import('./pages/Auth'));
+const TwoFactorVerification = React.lazy(() => import('./pages/TwoFactorVerification'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
+const Boosts = React.lazy(() => import('./pages/Boosts'));
 
-import AdminOverview from './pages/admin/Overview';
-import AdminServers from './pages/admin/Servers';
-import AdminUsers from './pages/admin/Users';
-import AdminNodes from './pages/admin/Nodes';
-import AdminTickets from './pages/admin/Tickets';
-import AdminRadar from './pages/admin/Radar';
-import AdminEggs from './pages/admin/Eggs';
-import AdminUpdater from './pages/admin/Updater';
+const AFKPage = React.lazy(() => import('./pages/coins/AFKPage'));
+const Store = React.lazy(() => import('./pages/coins/Store'));
+const Staking = React.lazy(() => import('./pages/coins/Staking'));
+const Daily = React.lazy(() => import('./pages/coins/Daily'));
+const Achievements = React.lazy(() => import('./pages/coins/Achievements'));
+const Wallet = React.lazy(() => import('./pages/coins/Wallet'));
+const BillingSuccess = React.lazy(() => import('./pages/billing/Success'));
+const AccountPage = React.lazy(() => import('./pages/Account'));
+const PasskeyManager = React.lazy(() => import('./pages/Passkeys'));
 
-import Support from './pages/Support';
+const AdminOverview = React.lazy(() => import('./pages/admin/Overview'));
+const AdminServers = React.lazy(() => import('./pages/admin/Servers'));
+const AdminUsers = React.lazy(() => import('./pages/admin/Users'));
+const AdminNodes = React.lazy(() => import('./pages/admin/Nodes'));
+const AdminTickets = React.lazy(() => import('./pages/admin/Tickets'));
+const AdminRadar = React.lazy(() => import('./pages/admin/Radar'));
+const AdminEggs = React.lazy(() => import('./pages/admin/Eggs'));
+const AdminUpdater = React.lazy(() => import('./pages/admin/Updater'));
+
+const Support = React.lazy(() => import('./pages/Support'));
+
+// Suspense fallback matching the app's dark theme
+const PageFallback = () => (
+  <div className="min-h-screen bg-[#101218] flex items-center justify-center p-4">
+    <RefreshCw className="w-8 h-8 animate-spin text-[#95a1ad]" />
+  </div>
+);
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -268,7 +278,9 @@ export default function App() {
     return (
       <ErrorBoundary siteName={siteName}>
         <div className="dark text-white">
-          <Website />
+          <Suspense fallback={<PageFallback />}>
+            <Website />
+          </Suspense>
         </div>
       </ErrorBoundary>
     );
@@ -278,6 +290,7 @@ export default function App() {
   return (
     <ErrorBoundary siteName={siteName}>
       <div className="dark text-white bg-[#151719] overflow-x-clip">
+        <Suspense fallback={<PageFallback />}>
         <Routes>
           {/* Root route with conditional redirect */}
           <Route path="/" element={<RootRedirect />} />
@@ -342,6 +355,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
           <Route path="/website" element={<Website />} />
         </Routes>
+        </Suspense>
       </div>
     </ErrorBoundary>
   );

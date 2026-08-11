@@ -83,7 +83,7 @@ function WelcomeModal({ isOpen, onClose }) {
         </DialogHeader>
         <div className="py-4 flex flex-col items-center">
           <div className="relative space-y-6 flex flex-col items-center text-center w-full">
-            <img src="https://i.imgur.com/7rsHr8H.png" alt="Heliactyl Next Logo" className="w-auto h-24 mb-4" />
+            <img src="https://i.imgur.com/7rsHr8H.png" alt="Heliactyl Next Logo" width="96" height="96" loading="lazy" className="w-auto h-24 mb-4" />
             <div className="space-y-2">
               <h2 className="text-3xl font-bold text-white tracking-tight">Heliactyl Next 10.0.0 (Toledo)</h2>
               <p className="text-neutral-400 max-w-lg leading-relaxed">

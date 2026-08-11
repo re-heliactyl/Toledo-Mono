@@ -50,7 +50,7 @@ const LandingPage = () => {
         }`}>
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <img src={settings?.logo || "https://i.imgur.com/gUUze6A.png"} alt={`${siteName} Logo`} className="h-8 w-auto" />
+            <img src={settings?.logo || "https://i.imgur.com/gUUze6A.png"} alt={`${siteName} Logo`} width="128" height="32" fetchpriority="high" className="h-8 w-auto" />
           </div>
 
           {/* Desktop Navigation */}
@@ -253,7 +253,7 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <img src={settings?.logo || "https://i.imgur.com/gUUze6A.png"} alt={`${siteName} Logo`} className="h-8 w-auto" />
+                <img src={settings?.logo || "https://i.imgur.com/gUUze6A.png"} alt={`${siteName} Logo`} width="128" height="32" loading="lazy" className="h-8 w-auto" />
               </div>
               <p className="text-[#95a1ad] mb-4">
                 Game hosting. For everyone.

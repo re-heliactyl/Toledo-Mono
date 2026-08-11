@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
+import React, { Suspense, useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import { Link, useLocation, useParams, useNavigate, Outlet } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import axios from 'axios';
 import { useSettings } from '../../hooks/useSettings';
 import { useQuery } from '@tanstack/react-query';
-import { Menu, X, Zap } from 'lucide-react';
+import { Menu, X, Zap, RefreshCw } from 'lucide-react';
 import {
   ServerStackIcon, WindowIcon, FolderIcon, GlobeAltIcon, PuzzlePieceIcon,
   CloudArrowDownIcon, UsersIcon, Cog6ToothIcon, CubeIcon,
@@ -23,6 +22,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+
+// Content fallback for lazy route transitions inside MainLayout
+const ContentFallback = () => (
+  <div className="flex items-center justify-center min-h-[300px] w-full">
+    <RefreshCw className="w-6 h-6 animate-spin text-[#95a1ad]" />
+  </div>
+);
 
 // Sidebar context for visibility management
 const SidebarContext = createContext({
@@ -693,11 +699,11 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
           {/* Main Content - Full width */}
           <main className={`flex-1 min-w-0 transition-all duration-300 pt-14 lg:pt-0`}>
-            <AnimatePresence mode="wait">
-              <div className="py-6 px-2 md:py-10 md:px-8 lg:py-16 lg:px-16">
+            <div className="py-6 px-2 md:py-10 md:px-8 lg:py-16 lg:px-16">
+              <Suspense fallback={<ContentFallback />}>
                 <Outlet />
-              </div>
-            </AnimatePresence>
+              </Suspense>
+            </div>
           </main>
         </div>
       </div>
