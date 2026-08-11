@@ -1,3 +1,4 @@
+import { getApiErrorObject } from '@/lib/api';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -109,27 +110,27 @@ function CreateServerModal({ isOpen, onClose }) {
 
   const handleNext = () => {
     if (step === 1) {
-      if (!name.trim()) return setError('Server name is required');
-      if (!egg) return setError('Software selection is required');
+      if (!name.trim()) return setError({ message: 'Server name is required' });
+      if (!egg) return setError({ message: 'Software selection is required' });
     }
     if (step === 2) {
-      if (!location) return setError('Location is required');
-      if (!selectedNode) return setError('Node selection is required');
+      if (!location) return setError({ message: 'Location is required' });
+      if (!selectedNode) return setError({ message: 'Node selection is required' });
     }
     if (step === 3) {
-      if (!ram || !disk || !cpu) return setError('Resource values are required');
+      if (!ram || !disk || !cpu) return setError({ message: 'Resource values are required' });
       if (selectedEgg) {
-        if (parseInt(ram) < selectedEgg.minimum.ram) return setError(`Minimum RAM required is ${selectedEgg.minimum.ram}MB`);
-        if (parseInt(disk) < selectedEgg.minimum.disk) return setError(`Minimum Disk required is ${selectedEgg.minimum.disk}MB`);
-        if (parseInt(cpu) < selectedEgg.minimum.cpu) return setError(`Minimum CPU required is ${selectedEgg.minimum.cpu}%`);
+        if (parseInt(ram) < selectedEgg.minimum.ram) return setError({ message: `Minimum RAM required is ${selectedEgg.minimum.ram}MB` });
+        if (parseInt(disk) < selectedEgg.minimum.disk) return setError({ message: `Minimum Disk required is ${selectedEgg.minimum.disk}MB` });
+        if (parseInt(cpu) < selectedEgg.minimum.cpu) return setError({ message: `Minimum CPU required is ${selectedEgg.minimum.cpu}%` });
       }
     }
-    setError('');
+    setError(null);
     setStep(step + 1);
   };
 
   const handleBack = () => {
-    setError('');
+    setError(null);
     setStep(step - 1);
   };
 
@@ -141,7 +142,7 @@ function CreateServerModal({ isOpen, onClose }) {
 
   const handleCreate = async () => {
     try {
-      setError('');
+      setError(null);
       setIsCreating(true);
 
       await axios.post('/api/v5/servers', {
@@ -156,7 +157,8 @@ function CreateServerModal({ isOpen, onClose }) {
       onClose();
       window.location.reload();
     } catch (err) {
-      setError(err.response?.data?.error || err.message);
+      const errObj = getApiErrorObject(err, 'Failed to create a server', { url: '/api/v5/servers' });
+      setError(errObj);
     } finally {
       setIsCreating(false);
     }
@@ -495,7 +497,7 @@ function CreateServerModal({ isOpen, onClose }) {
           )}
 
           <div className="flex items-center gap-4">
-            {error && <p className="text-red-400 text-xs font-medium">{error}</p>}
+            {error?.message && <p className="text-red-400 text-xs font-medium">{error.message}</p>}
             
             {step < 4 ? (
               <button
