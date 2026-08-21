@@ -93,6 +93,9 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
 import { formatBytes } from '@/lib/format';
+import ServerPropertiesPanel from './ServerPropertiesPanel';
+import BukkitConfigPanel from './BukkitConfigPanel';
+import SpigotConfigPanel from './SpigotConfigPanel';
 
 // Utility functions
 const formatDate = (dateString) => {
@@ -181,6 +184,13 @@ const FileManagerPage = () => {
   const [loadingFolderSizes, setLoadingFolderSizes] = useState({});
   const folderSizeRequestRef = useRef(0);
   const forceFolderSizeRefreshRef = useRef(false);
+
+  // Config panel state (server.properties, spigot.yml, bukkit.yml)
+  const [showPropertiesPanel, setShowPropertiesPanel] = useState(false);
+  const [pendingPropertiesFile, setPendingPropertiesFile] = useState(null);
+  const bypassPropertiesCheckRef = useRef(false);
+  const [showBukkitPanel, setShowBukkitPanel] = useState(false);
+  const [showSpigotPanel, setShowSpigotPanel] = useState(false);
 
   // Path handling
   const normalizePath = useCallback((path) => {
@@ -371,6 +381,29 @@ const FileManagerPage = () => {
   }, [currentPath, folderSizes, joinPaths, loadingFolderSizes]);
 
   const handleFileView = useCallback(async (file) => {
+    const name = file.name;
+
+    // Intercept Minecraft config files → open config panel instead of raw editor
+    if ((name === 'server.properties' || name === 'bukkit.yml' || name === 'spigot.yml') && !bypassPropertiesCheckRef.current) {
+      bypassPropertiesCheckRef.current = false;
+      setPendingPropertiesFile(file);
+      try {
+        const eggRes = await fetch(`/api/server/${id}/egg`);
+        if (eggRes.ok) {
+          const { isMinecraft } = await eggRes.json();
+          if (isMinecraft) {
+            if (name === 'server.properties') setShowPropertiesPanel(true);
+            else if (name === 'bukkit.yml') setShowBukkitPanel(true);
+            else setShowSpigotPanel(true);
+            return;
+          }
+        }
+      } catch (_) { /* fall through to raw file */ }
+      bypassPropertiesCheckRef.current = true;
+      return handleFileView(file);
+    }
+    bypassPropertiesCheckRef.current = false;
+
     try {
       setIsLoading(true);
       const filePath = joinPaths(currentPath, file.name);
@@ -389,6 +422,15 @@ const FileManagerPage = () => {
       setIsLoading(false);
     }
   }, [id, currentPath, joinPaths, handleError]);
+
+  const handleOpenRawFile = useCallback(() => {
+    if (!pendingPropertiesFile) return;
+    bypassPropertiesCheckRef.current = true;
+    setShowPropertiesPanel(false);
+    setShowBukkitPanel(false);
+    setShowSpigotPanel(false);
+    setTimeout(() => handleFileView(pendingPropertiesFile), 150);
+  }, [pendingPropertiesFile, handleFileView]);
 
   const handleFileSave = useCallback(async () => {
     if (!selectedFile) return;
@@ -667,9 +709,11 @@ const FileManagerPage = () => {
         setSelectedFile(null);
         setEditorContent('');
         setIsEditorDirty(false);
+        setSelectedFiles([]);
         fetchFiles(path);
       }
     } else {
+      setSelectedFiles([]);
       fetchFiles(path);
     }
   }, [isEditorDirty, fetchFiles]);
@@ -1630,6 +1674,11 @@ const FileManagerPage = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Config Panels */}
+        <ServerPropertiesPanel serverId={id} currentPath={currentPath} open={showPropertiesPanel} onOpenChange={setShowPropertiesPanel} onOpenRawFile={handleOpenRawFile} />
+        <BukkitConfigPanel serverId={id} currentPath={currentPath} open={showBukkitPanel} onOpenChange={setShowBukkitPanel} onOpenRawFile={handleOpenRawFile} />
+        <SpigotConfigPanel serverId={id} currentPath={currentPath} open={showSpigotPanel} onOpenChange={setShowSpigotPanel} onOpenRawFile={handleOpenRawFile} />
 
         {/* Loading Overlay */}
         {isLoading && files.length > 0 && (
