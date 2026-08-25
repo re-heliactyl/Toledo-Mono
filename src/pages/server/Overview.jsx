@@ -22,6 +22,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from "axios";
 import {
   AlertTriangle,
+  Check,
   ChevronDown,
   Clock,
   Copy,
@@ -300,6 +301,7 @@ export default function ConsolePage() {
   const [installationProgress, setInstallationProgress] = useState(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [copiedIp, setCopiedIp] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [resourceHistory, setResourceHistory] = useState({
     cpu: [],
@@ -560,6 +562,43 @@ export default function ConsolePage() {
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
       console.error('Failed to copy text:', err);
+    }
+  };
+
+  const handleCopyIp = async () => {
+    const primaryAlloc = server?.relationships?.allocations?.data?.[0]?.attributes;
+    const ipToCopy = primaryAlloc
+      ? `${primaryAlloc.ip_alias || primaryAlloc.ip}:${primaryAlloc.port}`
+      : '';
+    if (!ipToCopy) return;
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(ipToCopy);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = ipToCopy;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopiedIp(true);
+      toast({
+        title: "Copied to clipboard",
+        description: `IP address ${ipToCopy} copied.`,
+      });
+      setTimeout(() => setCopiedIp(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy IP:', err);
+      toast({
+        title: "Error",
+        description: "Failed to copy IP address to clipboard.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -975,16 +1014,44 @@ export default function ConsolePage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 min-w-0">
-          <Network className="w-4 h-4 text-neutral-400 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-xs text-neutral-500">IP Address</p>
-            <p className="text-sm text-white font-medium truncate">
-              {server?.relationships?.allocations?.data?.[0]?.attributes?.ip_alias}:
-              {server?.relationships?.allocations?.data?.[0]?.attributes?.port}
-            </p>
-          </div>
-        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={handleCopyIp}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCopyIp();
+                  }
+                }}
+                className="flex items-center gap-2 min-w-0 cursor-pointer group hover:bg-white/[0.04] px-2 py-1 -mx-2 -my-1 rounded-md transition-colors select-none"
+              >
+                <Network className="w-4 h-4 text-neutral-400 group-hover:text-neutral-200 transition-colors shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-neutral-500 group-hover:text-neutral-400 transition-colors">IP Address</p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className="text-sm text-white font-medium truncate group-hover:text-neutral-200 transition-colors">
+                      {server?.relationships?.allocations?.data?.[0]?.attributes
+                        ? `${server.relationships.allocations.data[0].attributes.ip_alias || server.relationships.allocations.data[0].attributes.ip}:${server.relationships.allocations.data[0].attributes.port}`
+                        : '—'}
+                    </p>
+                    {copiedIp ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 text-neutral-500 group-hover:text-neutral-300 transition-colors shrink-0" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{copiedIp ? 'Copied!' : 'Click to copy'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         <Popover>
           <PopoverTrigger asChild>

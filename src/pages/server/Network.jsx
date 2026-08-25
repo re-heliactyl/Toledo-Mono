@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Plus, RefreshCw, Star } from 'lucide-react';
+import { Trash2, Plus, RefreshCw, Star, Copy, Check } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -19,6 +19,7 @@ const AllocationsPage = () => {
   const [createLoading, setCreateLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [primaryLoading, setPrimaryLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
 
   const fetchAllocations = async () => {
     setLoading(true);
@@ -31,6 +32,32 @@ const AllocationsPage = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCopyAddress = async (address, allocId) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(address);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = address;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopiedId(allocId);
+      toast({
+        title: "Copied to clipboard",
+        description: `Address ${address} copied.`,
+      });
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy address:', err);
     }
   };
 
@@ -144,9 +171,19 @@ const AllocationsPage = () => {
                       <TableRow key={allocation.id} className="hover:bg-neutral-900/50 border-neutral-800">
                         <TableCell>
                           <div className="flex items-center space-x-2 py-1">
-                            <span className="font-bold text-white text-sm">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyAddress(`${allocation.alias || allocation.ip}:${allocation.port}`, allocation.id)}
+                              className="inline-flex items-center gap-1.5 font-bold text-white text-sm hover:text-neutral-200 group transition-colors select-none"
+                              title="Click to copy address"
+                            >
                               {allocation.alias || allocation.ip}:{allocation.port}
-                            </span>
+                              {copiedId === allocation.id ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5 text-neutral-500 group-hover:text-neutral-300 transition-colors shrink-0" />
+                              )}
+                            </button>
                             {allocation.is_primary && (
                               <Badge className="bg-emerald-500/10 text-emerald-400 border-none hover:bg-emerald-500/10 py-0 px-1.5 text-[9px] font-bold h-4">
                                 PRIMARY
