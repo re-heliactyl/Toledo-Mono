@@ -183,19 +183,33 @@ const FileManagerPage = () => {
   const forceFolderSizeRefreshRef = useRef(false);
 
   // Path handling
-  const normalizePath = useCallback((path) => {
-    path = path.replace(/\/+/g, '/');
-    return path.endsWith('/') ? path : `${path}/`;
+  const normalizeDirectoryPath = useCallback((path = '/') => {
+    const raw = String(path || '/').replace(/\/+/g, '/');
+    const withLeading = raw.startsWith('/') ? raw : `/${raw}`;
+    return withLeading.endsWith('/') ? withLeading : `${withLeading}/`;
   }, []);
 
-  const joinPaths = useCallback((...paths) => {
-    return normalizePath(paths.join('/'));
-  }, [normalizePath]);
+  const joinDirectoryPath = useCallback((root = '/', dirName = '') => {
+    const cleanRoot = String(root || '/').replace(/\/+$/, '');
+    const cleanDir = String(dirName || '').replace(/^\/+/, '').replace(/\/+$/, '');
+    const combined = `${cleanRoot}/${cleanDir}`.replace(/\/+/g, '/');
+    return combined.endsWith('/') ? combined : `${combined}/`;
+  }, []);
+
+  const joinFilePath = useCallback((root = '/', fileName = '') => {
+    const cleanRoot = String(root || '/').replace(/\/+$/, '');
+    const cleanFile = String(fileName || '').replace(/^\/+/, '').replace(/\/+$/, '');
+    const combined = `${cleanRoot}/${cleanFile}`.replace(/\/+/g, '/');
+    return combined.replace(/\/+$/, '') || '/';
+  }, []);
+
+  const normalizePath = normalizeDirectoryPath;
+  const joinPaths = joinDirectoryPath;
 
   // Error handling
   const handleError = useCallback((error, customMessage = null) => {
     console.error('Operation failed:', error);
-    const message = customMessage || error?.response?.data?.error || error.message || 'Operation failed';
+    const message = error?.response?.data?.error || error?.message || customMessage || 'Operation failed';
     setError(message);
     toast({
       variant: "destructive",
@@ -373,10 +387,14 @@ const FileManagerPage = () => {
   const handleFileView = useCallback(async (file) => {
     try {
       setIsLoading(true);
-      const filePath = joinPaths(currentPath, file.name);
+      const filePath = joinFilePath(currentPath, file.name);
       const response = await fetch(`/api/server/${id}/files/contents?file=${encodeURIComponent(filePath)}`);
 
-      if (!response.ok) throw new Error(`Failed to fetch file contents: ${response.statusText}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const errorText = errorData?.error || errorData?.message || response.statusText;
+        throw new Error(errorText || 'Failed to fetch file contents');
+      }
 
       const content = await response.text();
       setEditorLanguage(getFileLanguage(file.name));
@@ -388,20 +406,27 @@ const FileManagerPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [id, currentPath, joinPaths, handleError]);
+  }, [id, currentPath, joinFilePath, handleError]);
 
   const handleFileSave = useCallback(async () => {
     if (!selectedFile) return;
 
     try {
       setIsSaving(true);
-      const filePath = joinPaths(currentPath, selectedFile.name);
+      const filePath = joinFilePath(currentPath, selectedFile.name);
       const response = await fetch(`/api/server/${id}/files/write?file=${encodeURIComponent(filePath)}`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
         body: editorContent
       });
 
-      if (!response.ok) throw new Error(`Failed to save file: ${response.statusText}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const errorText = errorData?.error || errorData?.message || response.statusText;
+        throw new Error(errorText || 'Failed to save file');
+      }
 
       handleSuccess('File saved successfully');
       setIsEditorDirty(false);
@@ -411,7 +436,7 @@ const FileManagerPage = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [selectedFile, currentPath, id, editorContent, joinPaths, handleSuccess, handleError]);
+  }, [selectedFile, currentPath, id, editorContent, joinFilePath, handleSuccess, handleError]);
 
   const handleNewItem = async () => {
     if (!newItemName.trim()) {
@@ -431,10 +456,11 @@ const FileManagerPage = () => {
 
         if (!response.ok) throw new Error(`Failed to create folder: ${response.statusText}`);
       } else {
-        const filePath = joinPaths(currentPath, newItemName);
+        const filePath = joinFilePath(currentPath, newItemName);
         const response = await fetch(`/api/server/${id}/files/write?file=${encodeURIComponent(filePath)}`, {
           method: 'POST',
-          body: ' '
+          headers: { 'Content-Type': 'text/plain' },
+          body: ''
         });
 
         if (!response.ok) throw new Error(`Failed to create file: ${response.statusText}`);
@@ -546,8 +572,7 @@ const FileManagerPage = () => {
 
   const downloadFile = async (file) => {
     try {
-      const normalizedPath = normalizePath(currentPath);
-      const filePath = joinPaths(normalizedPath, file.name);
+      const filePath = joinFilePath(currentPath, file.name);
 
       const response = await fetch(`/api/server/${id}/files/download?file=${encodeURIComponent(filePath)}`, {
         method: 'GET',

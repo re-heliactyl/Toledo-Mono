@@ -433,8 +433,10 @@ export default function ConsolePage() {
 
   const writeFile = async (path, content) => {
     try {
-      const response = await fetch(`/api/server/${id}/files/write?file=${encodeURIComponent(path)}`, {
+      const cleanPath = String(path || '').replace(/\/+/g, '/').replace(/\/+$/, '');
+      const response = await fetch(`/api/server/${id}/files/write?file=${encodeURIComponent(cleanPath)}`, {
         method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
         body: content
       });
 
