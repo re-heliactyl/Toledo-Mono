@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { CheckCircle, AlertCircle, RefreshCw, FileText, Calendar, DollarSign, CreditCard, ArrowRight, Package } from 'lucide-react';
+import { CheckCircle, AlertCircle, RefreshCw, FileText, Calendar, CreditCard, ArrowRight, Package } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -97,9 +97,9 @@ export default function BillingSuccess() {
             <div className="bg-[#202229] border border-white/5 rounded-lg p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-[#95a1ad] text-sm flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" /> Amount Paid
+                  <CreditCard className="w-4 h-4" /> Amount Paid
                 </span>
-                <span className="text-xl font-bold text-white">${transaction.amount_usd?.toFixed(2)}</span>
+                <span className="text-xl font-bold text-white">{transaction.amount_eur?.toFixed(2)} €</span>
               </div>
               <Separator className="bg-white/5" />
               <div className="space-y-3">

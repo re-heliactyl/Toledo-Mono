@@ -18,7 +18,7 @@ import {
   Package,
   Shield,
   Star,
-  DollarSign,
+  CreditCard,
   Infinity
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -507,7 +507,7 @@ export default function StorePage() {
               </div>
               <div className="p-4 pb-3 space-y-4 flex-1">
                 <div className="text-2xl font-semibold">
-                  ${bundleStatus?.prices?.auto_renew?.toFixed(2) || '4.99'}
+                  {bundleStatus?.prices?.auto_renew ? `${bundleStatus.prices.auto_renew.toFixed(2)} €` : '2.99 €'}
                   <span className="text-sm text-[#95a1ad] font-normal"> / 30 days</span>
                 </div>
                 <p className="text-sm text-[#95a1ad]">
@@ -546,7 +546,7 @@ export default function StorePage() {
                     {loading.auto_renew ? (
                       <RefreshCw className="w-4 h-4 animate-spin mr-2" />
                     ) : (
-                      <DollarSign className="w-4 h-4 mr-2" />
+                      <CreditCard className="w-4 h-4 mr-2" />
                     )}
                     Subscribe Now
                   </button>
@@ -566,7 +566,7 @@ export default function StorePage() {
               </div>
               <div className="p-4 pb-3 space-y-4 flex-1">
                 <div className="text-2xl font-semibold">
-                  ${bundleStatus?.prices?.upgraded_pack?.toFixed(2) || '9.99'}
+                  {bundleStatus?.prices?.upgraded_pack ? `${bundleStatus.prices.upgraded_pack.toFixed(2)} €` : '3.99 €'}
                   <span className="text-sm text-[#95a1ad] font-normal"> / 30 days</span>
                 </div>
                 <p className="text-sm text-[#95a1ad]">
@@ -605,7 +605,7 @@ export default function StorePage() {
                     {loading.upgraded_pack ? (
                       <RefreshCw className="w-4 h-4 animate-spin mr-2" />
                     ) : (
-                      <DollarSign className="w-4 h-4 mr-2" />
+                      <CreditCard className="w-4 h-4 mr-2" />
                     )}
                     Subscribe Now
                   </button>
@@ -625,7 +625,7 @@ export default function StorePage() {
               </div>
               <div className="p-4 pb-3 space-y-4 flex-1">
                 <div className="text-2xl font-semibold">
-                  ${bundleStatus?.prices?.god_pack?.toFixed(2) || '19.99'}
+                  {bundleStatus?.prices?.god_pack ? `${bundleStatus.prices.god_pack.toFixed(2)} €` : '5.49 €'}
                   <span className="text-sm text-[#95a1ad] font-normal"> / 30 days</span>
                 </div>
                 <p className="text-sm text-[#95a1ad]">
@@ -668,7 +668,7 @@ export default function StorePage() {
                     {loading.god_pack ? (
                       <RefreshCw className="w-4 h-4 animate-spin mr-2" />
                     ) : (
-                      <DollarSign className="w-4 h-4 mr-2" />
+                      <CreditCard className="w-4 h-4 mr-2" />
                     )}
                     Subscribe Now
                   </button>

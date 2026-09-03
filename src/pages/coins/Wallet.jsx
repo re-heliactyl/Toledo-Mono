@@ -149,7 +149,7 @@ export default function WalletPage() {
 
   // Remaining balance dialog state
   const [topupRemainingOpen, setTopupRemainingOpen] = useState(false);
-  const [topupRemainingData, setTopupRemainingData] = useState({ packageId: null, priceUsd: 0, remainingAmount: 0 });
+  const [topupRemainingData, setTopupRemainingData] = useState({ packageId: null, priceEur: 0, remainingAmount: 0 });
 
   // Transfer State
   const [isSendOpen, setIsSendOpen] = useState(false);
@@ -265,12 +265,14 @@ export default function WalletPage() {
     
     if (type === 'purchase') {
       if (details.package_amount) {
-        return `Package of ${details.package_amount} Coins ($${details.price_usd})`;
+        const pPrice = details.price_eur;
+        return `Package of ${details.package_amount} Coins (${pPrice} €)`;
       }
-      if (details.amount_usd) {
+      if (details.amount_eur) {
+        const val = details.amount_eur;
         return (
           <span className="flex items-center gap-2">
-            Stripe Top-up (${(details.amount_usd / 100).toFixed(2)})
+            Stripe Top-up ({(val / 100).toFixed(2)} €)
             {details.invoice_url && (
               <a href={details.invoice_url} target="_blank" rel="noreferrer" className="text-white/50 hover:text-white transition-colors" title="View Invoice">
                 <FileText className="w-3 h-3" />
@@ -294,7 +296,7 @@ export default function WalletPage() {
 
     if (['credit_purchase', 'bundle_purchase', 'credit_spend', 'spend'].includes(txn.type)) {
       isCurrency = true;
-    } else if (txn.type === 'purchase' && txn.details?.amount_usd) {
+    } else if (txn.type === 'purchase' && txn.details?.amount_eur) {
       isCurrency = true;
     } else if (
       ['coin_purchase', 'transfer_sent', 'transfer_received', 'daily_claim', 'daily claim', 'stake_create', 'stake_claim', 'store_purchase', 'store purchase', 'boost_purchase', 'boost_refund', 'boost_extend'].includes(txn.type) ||
@@ -308,7 +310,7 @@ export default function WalletPage() {
     const rawAmount = Math.abs(txn.amount);
 
     if (isCurrency) {
-      return `${sign}${(rawAmount / 100).toFixed(2)}`;
+      return `${sign}${(rawAmount / 100).toFixed(2)} €`;
     } else if (isCoins) {
       return `${sign}${rawAmount} Coins`;
     } else {
@@ -342,7 +344,7 @@ export default function WalletPage() {
 
   const handleTopUp = () => {
     if (!amount || parseFloat(amount) < 1) {
-      setError('Minimum top-up amount is $1.00');
+      setError('Minimum top-up amount is 1.00 €');
       return;
     }
     withTosGate(() => _doTopUp());
@@ -353,8 +355,9 @@ export default function WalletPage() {
       setLoading(prev => ({ ...prev, checkout: true }));
       setError('');
       
+      const parsedAmount = parseFloat(amount);
       const response = await axios.post('/api/v5/billing/checkout', {
-        amount_usd: parseFloat(amount)
+        amount_eur: parsedAmount
       });
 
       if (response.data.url) {
@@ -369,19 +372,19 @@ export default function WalletPage() {
     }
   };
   
-  const handlePurchaseCoins = (packageId, priceUsd) => {
-    withTosGate(() => _doPurchaseCoins(packageId, priceUsd));
+  const handlePurchaseCoins = (packageId, priceEur) => {
+    withTosGate(() => _doPurchaseCoins(packageId, priceEur));
   };
 
-  const _doPurchaseCoins = async (packageId, priceUsd) => {
+  const _doPurchaseCoins = async (packageId, priceEur) => {
     try {
-      const currentCredit = billingInfo?.balances?.credit_usd || 0;
+      const currentCredit = billingInfo?.balances?.credit_eur || 0;
 
       // If user doesn't have enough credit, check if they have some credit balance
-      if (currentCredit < priceUsd) {
+      if (currentCredit < priceEur) {
         if (currentCredit > 0) {
-          const remainingAmount = priceUsd - currentCredit;
-          setTopupRemainingData({ packageId, priceUsd, remainingAmount });
+          const remainingAmount = priceEur - currentCredit;
+          setTopupRemainingData({ packageId, priceEur, remainingAmount });
           setTopupRemainingOpen(true);
           return;
         }
@@ -391,7 +394,7 @@ export default function WalletPage() {
         setError('');
         
         const response = await axios.post('/api/v5/billing/checkout', {
-          amount_usd: priceUsd
+          amount_eur: priceEur
         });
 
         if (response.data.url) {
@@ -433,7 +436,7 @@ export default function WalletPage() {
       setError('');
       
       const response = await axios.post('/api/v5/billing/checkout', {
-        amount_usd: choiceAmount
+        amount_eur: choiceAmount
       });
 
       if (response.data.url) {
@@ -621,12 +624,12 @@ export default function WalletPage() {
             </div>
             <div className="p-4">
               <div className="text-3xl font-bold text-white mb-4">
-                ${billingInfo?.balances?.credit_usd?.toFixed(2) || '0.00'}
+                {(billingInfo?.balances?.credit_eur || 0).toFixed(2)} €
               </div>
               <div className="space-y-3">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#95a1ad]">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#95a1ad]">€</span>
                     <input
                       type="number"
                       min="1"
@@ -668,11 +671,13 @@ export default function WalletPage() {
             <div className="p-4">
               <div className="grid grid-cols-1 gap-3">
                 {billingInfo?.coin_packages?.slice(0, 3).map((pkg) => {
-                  const hasEnough = billingInfo?.balances?.credit_usd >= pkg.price_usd;
+                  const pkgPrice = pkg.price_eur;
+                  const currentCredit = billingInfo?.balances?.credit_eur || 0;
+                  const hasEnough = currentCredit >= pkgPrice;
                   return (
                     <button
                       key={pkg.amount}
-                      onClick={() => handlePurchaseCoins(pkg.amount, pkg.price_usd)}
+                      onClick={() => handlePurchaseCoins(pkg.amount, pkgPrice)}
                       disabled={loading.purchase || loading.checkout}
                       className={`
                         relative group flex items-center justify-between p-3 rounded-lg border transition-all
@@ -684,10 +689,10 @@ export default function WalletPage() {
                         {!hasEnough && <span className="text-[10px] text-yellow-500/80">Buy directly via Stripe</span>}
                       </div>
                       <span className="text-xs px-2 py-1 rounded bg-[#202229] text-white border border-white/10 flex items-center gap-2">
-                        {loading.checkout && (billingInfo?.balances?.credit_usd < pkg.price_usd) ? (
+                        {loading.checkout && (currentCredit < pkgPrice) ? (
                           <RefreshCw className="w-3 h-3 animate-spin" />
                         ) : null}
-                        ${pkg.price_usd}
+                        {pkgPrice} €
                       </span>
                     </button>
                   );
@@ -979,11 +984,11 @@ export default function WalletPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-[#95a1ad] leading-relaxed">
-              Your current balance is <span className="text-white font-medium">${(billingInfo?.balances?.credit_usd || 0).toFixed(2)}</span>.
-              The package costs <span className="text-white font-medium">${(topupRemainingData.priceUsd || 0).toFixed(2)}</span>.
+              Your current balance is <span className="text-white font-medium">{(billingInfo?.balances?.credit_eur || 0).toFixed(2)} €</span>.
+              The package costs <span className="text-white font-medium">{(topupRemainingData.priceEur || 0).toFixed(2)} €</span>.
             </p>
             <p className="text-sm text-[#95a1ad] leading-relaxed">
-              Would you like to top up only the remaining <span className="text-white font-semibold">${(topupRemainingData.remainingAmount || 0).toFixed(2)}</span>, or pay the full price of <span className="text-white font-semibold">${(topupRemainingData.priceUsd || 0).toFixed(2)}</span>?
+              Would you like to top up only the remaining <span className="text-white font-semibold">{(topupRemainingData.remainingAmount || 0).toFixed(2)} €</span>, or pay the full price of <span className="text-white font-semibold">{(topupRemainingData.priceEur || 0).toFixed(2)} €</span>?
             </p>
           </div>
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
@@ -995,16 +1000,16 @@ export default function WalletPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => handleTopupRemainingChoice(topupRemainingData.priceUsd)}
+              onClick={() => handleTopupRemainingChoice(topupRemainingData.priceEur)}
               className="bg-[#2e3337] hover:bg-[#3e4449] text-white border border-white/5"
             >
-              Pay in Full (${(topupRemainingData.priceUsd || 0).toFixed(2)})
+              Pay in Full ({(topupRemainingData.priceEur || 0).toFixed(2)} €)
             </Button>
             <Button
               onClick={() => handleTopupRemainingChoice(topupRemainingData.remainingAmount)}
               className="bg-white text-black hover:bg-white/90"
             >
-              Pay Remaining (${(topupRemainingData.remainingAmount || 0).toFixed(2)})
+              Pay Remaining ({(topupRemainingData.remainingAmount || 0).toFixed(2)} €)
             </Button>
           </DialogFooter>
         </DialogContent>
