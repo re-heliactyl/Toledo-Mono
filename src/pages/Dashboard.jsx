@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { ChartPie, Users, Server, CircuitBoard, MapPin } from 'lucide-react';
 import { FAQSection } from '../components/FAQSection';
+import OvernodeAppCard from '../components/OvernodeAppCard';
 import { Card, CardContent } from '@/components/ui/card';
 import { useSettings } from '@/hooks/useSettings';
 
@@ -228,6 +229,9 @@ export default function Dashboard() {
           unit=""
         />
       </div>
+
+      {/* Overnode Desktop App Integration */}
+      <OvernodeAppCard />
 
       {/* FAQ Section */}
       <FAQSection />

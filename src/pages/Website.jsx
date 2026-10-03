@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Server, Globe, Shield, Zap, Menu, X, ChevronDown, CircleCheck, ExternalLink } from 'lucide-react';
+import { ChevronRight, Server, Globe, Shield, Zap, Menu, X, ChevronDown, CircleCheck, ExternalLink, Download } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
+import OvernodeAppCard from '../components/OvernodeAppCard';
 
 const LandingPage = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -55,6 +56,12 @@ const LandingPage = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
+            {settings?.features?.desktopApp !== false && (
+              <a href="#desktop-app" className="text-sm text-white hover:text-white/80 transition flex items-center gap-1.5">
+                <Download className="w-3.5 h-3.5 text-[#95a1ad]" />
+                <span>Desktop App</span>
+              </a>
+            )}
             <a href="#pricing" className="text-sm text-white hover:text-white/80 transition">Pricing</a>
             <a href="https://discord.gg/freehosting" className="text-sm text-white hover:text-white/80 transition">Community</a>
             <a href={consoleUrl} className="text-sm text-white hover:text-white/80 transition">Dashboard</a>
@@ -89,6 +96,16 @@ const LandingPage = () => {
         {mobileMenuOpen && (
           <div className="md:hidden bg-[#15161a] border-t border-[#2e3337] mt-4 py-4">
             <nav className="flex flex-col gap-4 px-6">
+              {settings?.features?.desktopApp !== false && (
+                <a
+                  href="#desktop-app"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-sm text-white hover:text-white/80 py-2 transition flex items-center gap-1.5"
+                >
+                  <Download className="w-4 h-4 text-[#95a1ad]" />
+                  <span>Desktop App</span>
+                </a>
+              )}
               <a href="#pricing" className="text-sm text-white hover:text-white/80 py-2 transition">Pricing</a>
               <a href="https://discord.gg/freehosting" className="text-sm text-white hover:text-white/80 py-2 transition">Community</a>
               <a href={consoleUrl} className="text-sm text-white hover:text-white/80 py-2 transition">Dashboard</a>
@@ -122,9 +139,17 @@ const LandingPage = () => {
         {/* Content container - not blurred */}
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-32 text-center">
           <div className="hidden sm:mb-8 mb-8 sm:flex sm:justify-center">
-            <div className="relative rounded-full bg-gradient-to-b from-[#0c0d0f]/20 to-[#0c0d0f]/40 backdrop-blur px-4 py-1.5 text-sm/6 text-white/70 ring-1 ring-white/5 hover:ring-white/10">
-              Global, high-performance free servers.&nbsp; <a href="#" className="font-semibold text-white"><span className="absolute inset-0" aria-hidden="true"></span>Learn more <span aria-hidden="true">&rarr;</span></a>
-            </div>
+            {settings?.features?.desktopApp !== false ? (
+              <a href="#desktop-app" className="relative rounded-full bg-[#15161a] px-4 py-1.5 text-sm/6 text-white/80 border border-[#2e3337] hover:border-white/20 transition flex items-center gap-2 group">
+                <span className="h-1.5 w-1.5 rounded-full bg-white/70"></span>
+                <span>Get the official <strong>Overnode Desktop</strong> app (macOS & Windows)</span>
+                <span className="text-[#95a1ad] group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+              </a>
+            ) : (
+              <div className="relative rounded-full bg-gradient-to-b from-[#0c0d0f]/20 to-[#0c0d0f]/40 backdrop-blur px-4 py-1.5 text-sm/6 text-white/70 ring-1 ring-white/5 hover:ring-white/10">
+                Global, high-performance free servers.&nbsp; <a href="#" className="font-semibold text-white"><span className="absolute inset-0" aria-hidden="true"></span>Learn more <span aria-hidden="true">&rarr;</span></a>
+              </div>
+            )}
           </div>
           <h1 className="text-5xl md:text-6xl font-semibold text-white/65 tracking-tight mb-8">
             The <span className="text-white">world's largest</span> free 24/7<br />game server hosting platform.
@@ -195,6 +220,22 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
+
+      {/* Overnode Desktop App Section */}
+      {settings?.features?.desktopApp !== false && (
+        <section id="desktop-app" className="py-20 bg-[#0c0d0f] border-t border-[#2e3337] scroll-mt-28">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl font-semibold mb-3">Overnode Desktop</h2>
+              <p className="max-w-2xl mx-auto text-[#95a1ad] text-sm md:text-base">
+                Download the official desktop application for macOS and Windows.
+              </p>
+            </div>
+
+            <OvernodeAppCard variant="landing" />
+          </div>
+        </section>
+      )}
 
       {/* FAQ Section */}
       <section id="faq" className="py-20 bg-[#0c0d0f]">
