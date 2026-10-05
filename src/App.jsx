@@ -57,6 +57,7 @@ const AdminEggs = React.lazy(() => import('./pages/admin/Eggs'));
 const AdminUpdater = React.lazy(() => import('./pages/admin/Updater'));
 
 const Support = React.lazy(() => import('./pages/Support'));
+const NotificationsPage = React.lazy(() => import('./pages/Notifications'));
 
 // Suspense fallback matching the app's dark theme
 const PageFallback = () => (
@@ -334,6 +335,7 @@ export default function App() {
             <Route path="/account" element={<AccountPage />} />
             <Route path="/passkeys" element={<PasskeyManager />} />
             <Route path="/support" element={<Support />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
 
             {/* Others */}
             <Route path="/boosts" element={<Boosts />} />
