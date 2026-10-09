@@ -208,8 +208,13 @@ const getApexDomain = (hostname) => {
 
 // Root redirect component that checks origin and settings to route accordingly
 const RootRedirect = () => {
-  const { settings } = useSettings();
+  const { settings, isLoading } = useSettings();
   const hostname = window.location.hostname.toLowerCase();
+
+  if (isLoading && !settings) {
+    return <PageFallback />;
+  }
+
   const configuredHost = getDomainHostname(settings?.domain);
 
   if (configuredHost) {
@@ -221,30 +226,15 @@ const RootRedirect = () => {
         configuredHost !== `www.${configuredApex}`;
 
       if (isConfiguredSubdomain) {
-        // Direct panel subdomain access (e.g. panel.overnode.fr, console.altare.pro) goes to dashboard
+        // Direct panel subdomain access (e.g. panel.example.com) goes to dashboard
         if (hostname === configuredHost) {
           return <Navigate to="/dashboard" replace />;
         }
-        // Apex domain or www subdomain renders the public website
-        if (hostname === configuredApex || hostname === `www.${configuredApex}`) {
-          return <Website />;
-        }
-      } else {
-        // configuredHost is the apex domain (e.g. altare.pro)
-        // Panel/console subdomains go to dashboard
-        if (
-          hostname.startsWith('console.') ||
-          hostname.startsWith('panel.') ||
-          hostname.startsWith('dash.') ||
-          hostname.startsWith('dashboard.') ||
-          hostname.startsWith('client.')
-        ) {
-          return <Navigate to="/dashboard" replace />;
-        }
-        // Apex domain or www subdomain renders the public website
-        if (hostname === configuredHost || hostname === `www.${configuredHost}`) {
-          return <Website />;
-        }
+      }
+
+      // Apex domain or www subdomain renders the public website
+      if (hostname === configuredApex || hostname === `www.${configuredApex}`) {
+        return <Website />;
       }
     }
   }
