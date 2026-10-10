@@ -22,6 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 // Content fallback for lazy route transitions inside MainLayout
 const ContentFallback = () => (
@@ -420,9 +421,10 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
                     </div>
                   )}
                 </div>
-                {/* User Profile Section */}
-                <div className="flex items-center gap-3 border border-white/5 shadow-xs rounded-xl py-3 px-3">
-                  <div className="h-7 w-7 bg-[#191b20] rounded-lg flex items-center justify-center">
+                {/* User Profile Section & Notification Bell */}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0 flex items-center gap-2.5 border border-white/5 shadow-xs rounded-xl py-3 px-3">
+                    <div className="h-7 w-7 bg-[#191b20] rounded-lg flex items-center justify-center flex-shrink-0">
                     <span className="text-xs text-white/70 font-semibold">
                       {getInitials(userData.global_name)}
                     </span>
@@ -431,10 +433,10 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="flex flex-col items-start cursor-pointer hover:text-white transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-[#08090c] rounded-md"
+                        className="flex flex-col items-start min-w-0 flex-1 cursor-pointer hover:text-white transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-[#08090c] rounded-md text-left"
                       >
-                        <span className="truncate max-w-[120px] text-sm font-medium">{userData.global_name}</span>
-                        <span className="text-[0.55rem] uppercase max-w-[120px] truncate tracking-widest text-white/30 leading-none mt-0.3">
+                        <span className="truncate w-full max-w-[105px] text-sm font-medium">{userData.global_name}</span>
+                        <span className="text-[0.55rem] uppercase w-full max-w-[105px] truncate tracking-widest text-white/30 leading-none mt-0.3">
                           {userData.email}
                         </span>
                       </button>
@@ -468,6 +470,8 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  </div>
+                  <NotificationBell side="top" align="start" />
                 </div>
 
                 {/* Powered by text - Bottom of sidebar */}
@@ -493,7 +497,7 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
               <Menu className="w-6 h-6" />
             </button>
             <span className="font-semibold">{settings?.name || "Heliactyl"}</span>
-            <div className="w-10" />
+            <NotificationBell side="bottom" align="end" />
           </header>
 
           {/* Mobile Navigation Drawer */}

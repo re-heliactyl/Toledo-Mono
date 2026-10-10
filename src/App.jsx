@@ -57,6 +57,7 @@ const AdminEggs = React.lazy(() => import('./pages/admin/Eggs'));
 const AdminUpdater = React.lazy(() => import('./pages/admin/Updater'));
 
 const Support = React.lazy(() => import('./pages/Support'));
+const NotificationsPage = React.lazy(() => import('./pages/Notifications'));
 
 // Suspense fallback matching the app's dark theme
 const PageFallback = () => (
@@ -178,22 +179,78 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Root redirect component that checks the origin and routes accordingly
-const RootRedirect = () => {
-  // Get the current hostname
-  const hostname = window.location.hostname;
+const getDomainHostname = (domainStr) => {
+  if (!domainStr || typeof domainStr !== 'string') return null;
+  const trimmed = domainStr.trim();
+  if (!trimmed) return null;
+  try {
+    const url = trimmed.startsWith('http://') || trimmed.startsWith('https://')
+      ? new URL(trimmed)
+      : new URL(`https://${trimmed}`);
+    return url.hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+};
 
-  // Check if it's the console subdomain
-  if (hostname === 'console.altare.pro') {
+const getApexDomain = (hostname) => {
+  if (!hostname || typeof hostname !== 'string') return null;
+  const parts = hostname.toLowerCase().split('.');
+  if (parts.length <= 1) return null;
+  if (parts.every(p => /^[0-9]+$/.test(p))) return null;
+  const twoPartTlds = ['co.uk', 'com.br', 'co.jp', 'org.uk', 'com.au', 'asso.fr'];
+  const lastTwo = parts.slice(-2).join('.');
+  if (twoPartTlds.includes(lastTwo)) {
+    return parts.length >= 3 ? parts.slice(-3).join('.') : null;
+  }
+  return parts.slice(-2).join('.');
+};
+
+// Root redirect component that checks origin and settings to route accordingly
+const RootRedirect = () => {
+  const { settings, isLoading } = useSettings();
+  const hostname = window.location.hostname.toLowerCase();
+
+  if (isLoading && !settings) {
+    return <PageFallback />;
+  }
+
+  const configuredHost = getDomainHostname(settings?.domain);
+
+  if (configuredHost) {
+    const configuredApex = getApexDomain(configuredHost);
+
+    if (configuredApex) {
+      const isConfiguredSubdomain =
+        configuredHost !== configuredApex &&
+        configuredHost !== `www.${configuredApex}`;
+
+      if (isConfiguredSubdomain) {
+        // Direct panel subdomain access (e.g. panel.example.com) goes to dashboard
+        if (hostname === configuredHost) {
+          return <Navigate to="/dashboard" replace />;
+        }
+      }
+
+      // Apex domain or www subdomain renders the public website
+      if (hostname === configuredApex || hostname === `www.${configuredApex}`) {
+        return <Website />;
+      }
+    }
+  }
+
+  // Panel subdomains go to dashboard
+  if (
+    hostname.startsWith('console.') ||
+    hostname.startsWith('panel.') ||
+    hostname.startsWith('dash.') ||
+    hostname.startsWith('dashboard.') ||
+    hostname.startsWith('client.')
+  ) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // If it's the main domain or www subdomain, show the website
-  if (hostname === 'altare.pro' || hostname === 'www.altare.pro') {
-    return <Website />;
-  }
-
-  // Default to dashboard for any other domain/subdomain
+  // Default to dashboard for direct panel access, localhost, or when settings are absent
   return <Navigate to="/dashboard" replace />;
 };
 
@@ -256,8 +313,6 @@ const ProtectedRoute = ({ children }) => {
 };
 
 export default function App() {
-  // Get hostname to determine if we need to render the console or website
-  const [isWebsite, setIsWebsite] = useState(false);
   const { settings } = useSettings();
   const siteName = settings?.name || "Heliactyl";
 
@@ -266,24 +321,6 @@ export default function App() {
       document.title = settings.name;
     }
   }, [settings]);
-
-  useEffect(() => {
-    const hostname = window.location.hostname;
-    setIsWebsite(hostname === 'altare.pro' || hostname === 'www.altare.pro');
-  }, []);
-
-  // If it's the main website domain, render the Website component directly
-  if (isWebsite) {
-    return (
-      <ErrorBoundary siteName={siteName}>
-        <div className="dark text-white">
-          <Suspense fallback={<PageFallback />}>
-            <Website />
-          </Suspense>
-        </div>
-      </ErrorBoundary>
-    );
-  }
 
   // Otherwise render the console application
   return (
@@ -334,6 +371,7 @@ export default function App() {
             <Route path="/account" element={<AccountPage />} />
             <Route path="/passkeys" element={<PasskeyManager />} />
             <Route path="/support" element={<Support />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
 
             {/* Others */}
             <Route path="/boosts" element={<Boosts />} />

@@ -1018,7 +1018,7 @@ export default function UsersPage() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary">{entry.ipAddress}</Badge>
+                            <Badge variant="secondary" className="font-mono text-xs border border-neutral-700/80 select-all">{entry.ipAddress}</Badge>
                             <span className="text-xs text-neutral-500">{entry.users?.length || 0} linked user(s)</span>
                           </div>
                           <p className="text-sm text-neutral-300">{entry.reason}</p>
@@ -1057,7 +1057,7 @@ export default function UsersPage() {
                             <span className="text-xs text-neutral-500">{new Date(audit.createdAt).toLocaleString()}</span>
                           </div>
                           <p className="mt-2 text-neutral-300">
-                            {audit.actorUsername || 'Unknown staff'} from {audit.actorIpAddress || 'unknown IP'}
+                            {audit.actorUsername || 'Unknown staff'} from <span className="font-mono text-neutral-200">{audit.actorIpAddress || 'unknown IP'}</span>
                           </p>
                           {audit.newValue?.reason && (
                             <p className="mt-1 text-xs text-neutral-500">Reason: {audit.newValue.reason}</p>
