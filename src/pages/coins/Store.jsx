@@ -629,7 +629,7 @@ export default function StorePage() {
                   <span className="text-sm text-[#95a1ad] font-normal"> / 30 days</span>
                 </div>
                 <p className="text-sm text-[#95a1ad]">
-                  The ultimate package. Everything from Auto Renew and Upgraded Pack, plus dedicated 20x performance nodes and full app customization.
+                  The ultimate package. Everything from Auto Renew and Upgraded Pack, plus exclusive custom games, dedicated high-performance nodes, and full app customization.
                 </p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
@@ -643,7 +643,13 @@ export default function StorePage() {
                   <li className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
                     <span className="text-[#95a1ad]">
-                      <strong className="text-white font-medium">Exclusive dedicated nodes:</strong> 20x higher performance & dedicated network
+                      <strong className="text-white font-medium">Exclusive custom games:</strong> Access to custom game eggs (FiveM, PocketMine-MP, GMod, etc.)
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-[#95a1ad]">
+                      <strong className="text-white font-medium">Exclusive dedicated nodes:</strong> High-performance nodes & dedicated network
                     </span>
                   </li>
                   <li className="flex items-start gap-2">

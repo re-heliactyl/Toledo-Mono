@@ -47,6 +47,8 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Server,
+  Sparkles,
   X
 } from 'lucide-react';
 import React, { useState } from 'react';
@@ -76,6 +78,38 @@ export default function AdminEggs() {
       cpu: maximum.cpu ?? null,
     };
   };
+
+  // Fetch locations and nodes for node restriction dropdown
+  const { data: locationsNodesData } = useQuery({
+    queryKey: ['admin-locations-nodes'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/admin/locations-nodes');
+      return data;
+    }
+  });
+
+  const nodesList = React.useMemo(() => {
+    if (!locationsNodesData?.locations) return [];
+    const list = [];
+    for (const loc of locationsNodesData.locations) {
+      if (Array.isArray(loc.nodes)) {
+        for (const node of loc.nodes) {
+          list.push({
+            ...node,
+            locationName: loc.name || null
+          });
+        }
+      }
+    }
+    return list;
+  }, [locationsNodesData]);
+  const nodesMap = React.useMemo(() => {
+    const map = new Map();
+    for (const node of nodesList) {
+      map.set(String(node.id), node);
+    }
+    return map;
+  }, [nodesList]);
 
   // Fetch eggs and categories
   const { data: eggsData, isLoading, error } = useQuery({
@@ -137,6 +171,27 @@ export default function AdminEggs() {
     },
     onError: (error) => {
       showApiErrorToast(toast, error, 'Failed to update egg', 'Update Failed');
+    }
+  });
+
+  // Toggle egg gold only mutation
+  const toggleGoldMutation = useMutation({
+    mutationFn: async (eggId) => {
+      const { data } = await axios.patch(`/api/admin/eggs/${eggId}/toggle-gold`);
+      return { eggId, goldOnly: data.goldOnly };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['admin-eggs']);
+      setSelectedEgg((prev) => (prev && prev.id === data.eggId ? { ...prev, goldOnly: data.goldOnly } : prev));
+      toast({
+        title: data.goldOnly ? 'God Pack Only Enabled' : 'God Pack Only Disabled',
+        description: data.goldOnly
+          ? 'This egg is now reserved exclusively for God Pack subscribers.'
+          : 'This egg is now available to all eligible users.',
+      });
+    },
+    onError: (error) => {
+      showApiErrorToast(toast, error, 'Failed to update God Pack only setting', 'Update Failed');
     }
   });
 
@@ -441,9 +496,22 @@ export default function AdminEggs() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-white">
-                              {egg.displayName || egg.originalName}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-white">
+                                {egg.displayName || egg.originalName}
+                              </p>
+                              {egg.goldOnly && (
+                                <Badge variant="outline" className="border-amber-500/40 text-amber-400 text-[10px]">
+                                  God Pack Only
+                                </Badge>
+                              )}
+                              {egg.nodeId && (
+                                <Badge variant="outline" className="border-blue-500/40 text-blue-400 text-[10px] flex items-center gap-1">
+                                  <Server className="w-2.5 h-2.5" />
+                                  {nodesMap.get(String(egg.nodeId))?.name || `Node #${egg.nodeId}`}
+                                </Badge>
+                              )}
+                            </div>
                             {egg.displayName && egg.displayName !== egg.originalName && (
                               <p className="text-xs text-neutral-500">
                                 Original: {egg.originalName}
@@ -511,6 +579,10 @@ export default function AdminEggs() {
                               }}>
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit Configuration
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => toggleGoldMutation.mutate(id)}>
+                                <Sparkles className="w-4 h-4 mr-2 text-amber-400" />
+                                {egg.goldOnly ? 'Disable God Pack Only' : 'Enable God Pack Only'}
                               </DropdownMenuItem>
                               {egg.enabled ? (
                                 <ConfirmDialog
@@ -601,6 +673,51 @@ export default function AdminEggs() {
                     </Select>
                   </div>
 
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Node Restriction</Label>
+                      {selectedEgg.nodeId && (
+                        <Badge variant="outline" className="border-blue-500/40 text-blue-400 text-[10px]">
+                          Restricted
+                        </Badge>
+                      )}
+                    </div>
+                    <Select
+                      value={selectedEgg.nodeId ? String(selectedEgg.nodeId) : "none"}
+                      onValueChange={(value) => setSelectedEgg({
+                        ...selectedEgg,
+                        nodeId: value === "none" ? null : value
+                      })}
+                    >
+                      <SelectTrigger className="border-neutral-700 bg-[#111111] text-white [&>span]:text-white">
+                        <SelectValue placeholder="All Nodes (No restriction)" />
+                      </SelectTrigger>
+                      <SelectContent className="border-neutral-800 bg-[#111111] text-white max-h-60">
+                        <SelectItem value="none" className="text-white focus:bg-neutral-800 focus:text-white">
+                          All Nodes (No restriction)
+                        </SelectItem>
+                        {nodesList.map(node => (
+                          <SelectItem key={node.id} value={String(node.id)} className="text-white focus:bg-neutral-800 focus:text-white">
+                            <div className="flex items-center justify-between w-full gap-2">
+                              <span>
+                                {node.name}
+                                {node.locationName && (
+                                  <span className="text-neutral-400 text-xs ml-1.5 font-normal">({node.locationName})</span>
+                                )}
+                              </span>
+                              {node.goldOnly && (
+                                <span className="text-[10px] text-amber-400 font-mono">(Gold Only)</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-neutral-500">
+                      Optional: Restrict server creation with this software to a specific node only
+                    </p>
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>Enabled</Label>
@@ -613,6 +730,29 @@ export default function AdminEggs() {
                       onCheckedChange={(checked) => setSelectedEgg({
                         ...selectedEgg,
                         enabled: checked
+                      })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <Label>God Pack Only</Label>
+                        {selectedEgg.goldOnly && (
+                          <Badge variant="outline" className="border-amber-500/40 text-amber-400 text-[10px]">
+                            God Pack Only
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-neutral-500">
+                        Reserve this egg exclusively for God Pack subscribers
+                      </p>
+                    </div>
+                    <Switch
+                      checked={Boolean(selectedEgg.goldOnly)}
+                      onCheckedChange={(checked) => setSelectedEgg({
+                        ...selectedEgg,
+                        goldOnly: checked
                       })}
                     />
                   </div>
@@ -785,6 +925,7 @@ export default function AdminEggs() {
                 const { id, ...updates } = selectedEgg;
                 const payload = {
                   ...updates,
+                  nodeId: updates.nodeId ? String(updates.nodeId) : null,
                   maximum: normalizeMaximumResources(updates.maximum),
                 };
 

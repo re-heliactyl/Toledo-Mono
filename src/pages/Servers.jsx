@@ -97,9 +97,26 @@ function CreateServerModal({ isOpen, onClose }) {
   const hasGodPack = Boolean(bundleStatus?.hasGodPack);
 
   const selectedEgg = Array.isArray(eggsData) ? eggsData.find(e => e.id === egg) : null;
-  const selectedLocation = Array.isArray(locations) ? locations.find(l => l.id === location) : null;
+
+  // Optional node restriction applied seamlessly
+  const eggRestrictedNode = (selectedEgg?.nodeId && Array.isArray(nodes))
+    ? nodes.find(n => n.id?.toString() === selectedEgg.nodeId?.toString())
+    : null;
+
+  const availableLocations = Array.isArray(locations)
+    ? locations.filter(l => {
+        if (!eggRestrictedNode) return true;
+        return l.id?.toString() === eggRestrictedNode.locationId?.toString();
+      })
+    : [];
+
+  const selectedLocation = availableLocations.find(l => l.id === location) || null;
   const filteredNodes = Array.isArray(nodes)
-    ? nodes.filter((n) => n.locationId?.toString() === selectedLocation?.id?.toString())
+    ? nodes.filter((n) => {
+        if (n.locationId?.toString() !== selectedLocation?.id?.toString()) return false;
+        if (eggRestrictedNode) return n.id?.toString() === eggRestrictedNode.id?.toString();
+        return true;
+      })
     : [];
 
   // Compute the max usable resources: remaining user quota, capped by egg maximum if set
@@ -127,10 +144,20 @@ function CreateServerModal({ isOpen, onClose }) {
     if (step === 1) {
       if (!name.trim()) return setError({ message: 'Server name is required' });
       if (!egg) return setError({ message: 'Software selection is required' });
+      if (selectedEgg?.goldOnly && !hasGodPack) {
+        return setError({ message: 'This software is reserved for God Pack subscribers only. Please choose another software or acquire the God Pack.' });
+      }
+      if (eggRestrictedNode) {
+        setLocation(eggRestrictedNode.locationId);
+        setSelectedNode(eggRestrictedNode.id?.toString());
+      }
     }
     if (step === 2) {
       if (!location) return setError({ message: 'Location is required' });
       if (!selectedNode) return setError({ message: 'Node selection is required' });
+      if (selectedEgg?.nodeId && selectedNode?.toString() !== selectedEgg.nodeId?.toString()) {
+        return setError({ message: 'The selected node is not available for this software.' });
+      }
       const targetNode = Array.isArray(nodes) ? nodes.find(n => n.id?.toString() === selectedNode?.toString()) : null;
       if (targetNode?.goldOnly && !hasGodPack) {
         return setError({ message: 'This node is reserved for God Pack subscribers only. Please choose another node or acquire the God Pack.' });
@@ -162,6 +189,12 @@ function CreateServerModal({ isOpen, onClose }) {
   const handleCreate = async () => {
     try {
       setError(null);
+      if (selectedEgg?.goldOnly && !hasGodPack) {
+        return setError({ message: 'This software is reserved for God Pack subscribers only. Please choose another software or acquire the God Pack.' });
+      }
+      if (selectedEgg?.nodeId && selectedNode?.toString() !== selectedEgg.nodeId?.toString()) {
+        return setError({ message: 'The selected node is not available for this software.' });
+      }
       setIsCreating(true);
 
       await axios.post('/api/v5/servers', {
@@ -252,8 +285,13 @@ function CreateServerModal({ isOpen, onClose }) {
                       onClick={() => setShowEggDropdown(!showEggDropdown)}
                       className="w-full bg-[#1c1c1c] border border-[#333] hover:border-neutral-500 rounded-lg p-3 text-left flex justify-between items-center transition-all text-sm"
                     >
-                      <span className={egg ? "text-white" : "text-neutral-500"}>
+                      <span className={egg ? "text-white flex items-center gap-2" : "text-neutral-500"}>
                         {selectedEgg ? selectedEgg.name : "Select a software type"}
+                        {selectedEgg?.goldOnly && (
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                            God Pack Only
+                          </span>
+                        )}
                       </span>
                       <ChevronRightIcon className={`w-4 h-4 text-neutral-500 transition-transform duration-200 ${showEggDropdown ? 'rotate-90' : ''}`} />
                     </button>
@@ -262,10 +300,36 @@ function CreateServerModal({ isOpen, onClose }) {
                         {Array.isArray(eggsData) && eggsData.map(e => (
                           <button
                             key={e.id}
-                            onClick={() => { setEgg(e.id); setShowEggDropdown(false); }}
-                            className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors flex justify-between items-center group"
+                            type="button"
+                            onClick={() => {
+                              if (e.goldOnly && !hasGodPack) {
+                                setError({ message: 'This software is reserved for God Pack subscribers only. Please choose another software or acquire the God Pack.' });
+                                return;
+                              }
+                              setError(null);
+                              setEgg(e.id);
+                              setShowEggDropdown(false);
+                              if (e.nodeId) {
+                                const target = Array.isArray(nodes) ? nodes.find(n => n.id?.toString() === e.nodeId?.toString()) : null;
+                                if (target) {
+                                  setLocation(target.locationId);
+                                  setSelectedNode(target.id?.toString());
+                                }
+                              } else if (selectedEgg?.nodeId) {
+                                setLocation('');
+                                setSelectedNode('');
+                              }
+                            }}
+                            className={`w-full text-left px-4 py-3 hover:bg-white/5 transition-colors flex justify-between items-center group ${egg === e.id ? 'bg-white/5' : ''}`}
                           >
-                            <span className="text-sm text-neutral-200 group-hover:text-white">{e.name}</span>
+                            <span className="text-sm text-neutral-200 group-hover:text-white flex items-center gap-2">
+                              {e.name}
+                              {e.goldOnly && (
+                                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                  God Pack Only
+                                </span>
+                              )}
+                            </span>
                             {egg === e.id && <CheckIcon className="w-4 h-4 text-neutral-400" />}
                           </button>
                         ))}
@@ -303,7 +367,7 @@ function CreateServerModal({ isOpen, onClose }) {
                         <div className="p-2 border-b border-[#333]">
                           <p className="text-xs text-neutral-400 px-2">Select a location</p>
                         </div>
-                         {Array.isArray(locations) && locations.map(l => (
+                         {Array.isArray(availableLocations) && availableLocations.map(l => (
                            <button
                              key={l.id}
                              onClick={() => handleLocationSelect(l.id)}
@@ -347,7 +411,7 @@ function CreateServerModal({ isOpen, onClose }) {
                             key={node.id} 
                             onClick={() => {
                               if (isLockedForUser) {
-                                setError({ message: `Node "${node.name}" is reserved exclusively for God Pack subscribers (20x performance & dedicated network).` });
+                                setError({ message: `Node "${node.name}" is reserved for God Pack subscribers only.` });
                                 return;
                               }
                               setError(null);
@@ -408,7 +472,7 @@ function CreateServerModal({ isOpen, onClose }) {
                                     <span>Gold Only (God Pack)</span>
                                   </div>
                                   <p className="text-[10px] text-neutral-600 mt-0.5">
-                                    20x higher performance & dedicated network. {isLockedForUser ? 'Requires active God Pack.' : 'Unlocked with your God Pack!'}
+                                    {isLockedForUser ? 'This node is reserved for God Pack subscribers only.' : 'Unlocked with your God Pack!'}
                                   </p>
                                 </>
                               )}
@@ -501,7 +565,14 @@ function CreateServerModal({ isOpen, onClose }) {
                     </div>
                     <div>
                       <p className="text-sm text-neutral-400 font-medium mb-1">Software</p>
-                      <p className="text-base font-bold text-white">{selectedEgg?.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-base font-bold text-white">{selectedEgg?.name}</p>
+                        {selectedEgg?.goldOnly && (
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                            God Pack Only
+                          </span>
+                        )}
+                      </div>
                     </div>
                      <div>
                         <p className="text-sm text-neutral-400 font-medium mb-1">Location</p>
@@ -553,7 +624,7 @@ function CreateServerModal({ isOpen, onClose }) {
           )}
 
           <div className="flex items-center gap-4">
-            {error?.message && <p className="text-red-400 text-xs font-medium">{error.message}</p>}
+            {error?.message && <p className="text-red-400 text-xs font-medium max-w-sm text-right leading-tight">{error.message}</p>}
             
             {step < 4 ? (
               <button
