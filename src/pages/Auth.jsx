@@ -270,7 +270,28 @@ const AuthPage = () => {
   if (isSettingsLoading && !settings) {
     return (
       <div className="min-h-screen bg-[#101218] flex items-center justify-center">
-        <RefreshCw className="w-8 h-8 animate-spin text-[#95a1ad]" />
+        <div className="flex flex-col items-center justify-center p-4 w-full max-w-md">
+          {/* Logo placeholder */}
+          <div className="mb-10">
+            <div className="h-10 w-40 bg-[#202229] rounded animate-pulse" />
+          </div>
+          {/* Card placeholder */}
+          <div className="w-full border border-[#2e3337] rounded-lg overflow-hidden">
+            <div className="p-6 pb-4 border-b border-[#2e3337] space-y-2">
+              <div className="h-7 w-56 mx-auto bg-[#202229] rounded animate-pulse" />
+              <div className="h-4 w-64 mx-auto bg-[#202229] rounded animate-pulse" />
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="h-11 w-full bg-[#202229] rounded-md animate-pulse" />
+              <div className="flex items-center gap-4">
+                <div className="flex-grow h-px bg-[#2e3337]" />
+                <div className="h-4 w-6 bg-[#202229] rounded animate-pulse" />
+                <div className="flex-grow h-px bg-[#2e3337]" />
+              </div>
+              <div className="h-11 w-full bg-[#202229] rounded-md animate-pulse" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

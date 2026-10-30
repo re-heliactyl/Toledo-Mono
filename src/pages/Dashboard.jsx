@@ -97,6 +97,23 @@ function LoadingSkeleton() {
         ))}
       </div>
 
+      {/* Overnode App Card skeleton placeholder */}
+      <div className="border border-[#2e3337]/50 rounded-lg p-5 bg-[#15161a]/60">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-lg bg-[#202229] animate-pulse" />
+            <div>
+              <div className="h-5 w-36 bg-[#202229] rounded animate-pulse" />
+              <div className="h-3 w-72 bg-[#202229] rounded animate-pulse mt-2" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-48 bg-[#202229] rounded-lg animate-pulse" />
+            <div className="h-9 w-32 bg-[#202229] rounded-lg animate-pulse" />
+          </div>
+        </div>
+      </div>
+
       {/* FAQ skeleton placeholder */}
       <div className="space-y-6 mt-12">
         <div className="h-7 w-20 bg-[#202229] rounded animate-pulse"></div>

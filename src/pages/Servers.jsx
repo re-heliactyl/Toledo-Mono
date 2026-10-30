@@ -780,15 +780,47 @@ function ServerCard({ server, wsStatus, stats }) {
 function LoadingSkeleton() {
   return (
     <div className="space-y-8 p-6 max-w-screen-2xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div className="h-8 w-32 bg-[#202229] rounded-md animate-pulse"></div>
-        <div className="h-9 w-32 bg-[#202229] rounded-md animate-pulse"></div>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="h-8 w-32 bg-[#202229] rounded-md animate-pulse" />
+          <div className="h-4 w-72 bg-[#202229] rounded animate-pulse mt-2" />
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-64 bg-[#202229] rounded-md animate-pulse" />
+          <div className="h-9 w-32 bg-[#202229] rounded-md animate-pulse" />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-[220px] border border-[#2e3337] rounded-lg bg-[#202229]/20 animate-pulse"></div>
-        ))}
+      {/* Section label */}
+      <div className="space-y-4">
+        <div className="h-4 w-28 bg-[#202229] rounded animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="border border-[#2e3337]/50 rounded-lg">
+              {/* Card header with icon + name */}
+              <div className="p-4 pb-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#202229] animate-pulse" />
+                <div>
+                  <div className="h-4 w-28 bg-[#202229] rounded animate-pulse" />
+                  <div className="h-3 w-16 bg-[#202229] rounded animate-pulse mt-1.5" />
+                </div>
+              </div>
+              {/* Resource bars */}
+              <div className="p-4 pt-2 pb-3 space-y-4">
+                {['Memory', 'CPU', 'Disk'].map((label) => (
+                  <div key={label}>
+                    <div className="flex justify-between mb-1.5">
+                      <div className="h-3 w-12 bg-[#202229] rounded animate-pulse" />
+                      <div className="h-3 w-24 bg-[#202229] rounded animate-pulse" />
+                    </div>
+                    <div className="h-1 w-full bg-[#202229] rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
