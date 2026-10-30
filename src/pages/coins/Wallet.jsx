@@ -7,8 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import {
   Activity,
@@ -480,6 +480,37 @@ export default function WalletPage() {
     }
   };
 
+  const prefetchTab = (tabId) => {
+    if (tabId === 'activity') {
+      queryClient.query({
+        queryKey: ['transactions'],
+        queryFn: async () => {
+          const response = await axios.get('/api/v5/billing/transactions');
+          return response.data;
+        },
+        staleTime: 30_000,
+      }).catch(() => {});
+    } else if (tabId === 'invoices') {
+      queryClient.query({
+        queryKey: queryKeys.economy.invoices(),
+        queryFn: async () => {
+          const response = await axios.get('/api/v5/billing/invoices');
+          return response.data;
+        },
+        staleTime: 30_000,
+      }).catch(() => {});
+    } else if (tabId === 'leaderboards') {
+      queryClient.query({
+        queryKey: queryKeys.economy.leaderboard(),
+        queryFn: async () => {
+          const response = await axios.get('/api/v5/billing/leaderboard');
+          return response.data;
+        },
+        staleTime: 30_000,
+      }).catch(() => {});
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'saving', label: 'Saving', icon: PiggyBank },
@@ -506,6 +537,7 @@ export default function WalletPage() {
             return (
               <button
                 key={tab.id}
+                onMouseEnter={() => prefetchTab(tab.id)}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 border-b-2 font-medium transition whitespace-nowrap ${
                   activeTab === tab.id

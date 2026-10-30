@@ -1,19 +1,22 @@
 import { getApiErrorObject } from '@/lib/api';
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { queryKeys } from '@/lib/queryKeys';
-import axios from 'axios';
-import {
-  ServerIcon, PlusIcon,
-  ArrowPathIcon, ExclamationCircleIcon,
-  UsersIcon, MagnifyingGlassIcon,
-  ChevronLeftIcon, ChevronRightIcon,
-  CheckIcon, LockClosedIcon, SparklesIcon
-} from '@heroicons/react/24/outline';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Badge } from "@/components/ui/badge";
 import { formatBytes } from '@/lib/format';
+import { queryKeys } from '@/lib/queryKeys';
+import {
+  ArrowPathIcon,
+  CheckIcon,
+  ChevronLeftIcon, ChevronRightIcon,
+  LockClosedIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  ServerIcon,
+  SparklesIcon,
+  UsersIcon
+} from '@heroicons/react/24/outline';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function CreateServerModal({ isOpen, onClose }) {
   const [step, setStep] = useState(1);
@@ -660,6 +663,7 @@ function CreateServerModal({ isOpen, onClose }) {
 
 function ServerCard({ server, wsStatus, stats }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const statusColors = {
     running: 'bg-emerald-500',
@@ -691,6 +695,17 @@ function ServerCard({ server, wsStatus, stats }) {
   const serverStats = stats?.[globalIdentifier] || { cpu: 0, memory: 0, disk: 0 };
   const isSuspended = server?.attributes?.suspended;
 
+  const handlePrefetch = () => {
+    queryClient.query({
+      queryKey: queryKeys.servers.detail(globalIdentifier),
+      queryFn: async () => {
+        const { data } = await axios.get(`/api/v5/server/${globalIdentifier}`);
+        return data;
+      },
+      staleTime: 30_000,
+    }).catch(() => {});
+  };
+
   const handleCardClick = () => {
     navigate(`/server/${globalIdentifier}/overview`);
   };
@@ -698,6 +713,7 @@ function ServerCard({ server, wsStatus, stats }) {
   return (
     <div
       className={`border rounded-lg bg-transparent transition duration-200 cursor-pointer relative group ${isSuspended ? 'border-red-500/30 hover:border-red-500/50' : 'border-[#2e3337]/50 hover:scale-[1.01] hover:border-[#2e3337] hover:border-white/10'}`}
+      onMouseEnter={handlePrefetch}
       onClick={handleCardClick}
     >
       <div className="p-4 pb-3 flex items-start justify-between">

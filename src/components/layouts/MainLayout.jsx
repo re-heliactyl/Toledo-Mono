@@ -1,28 +1,44 @@
-import React, { Suspense, useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
-import { Link, useLocation, useParams, useNavigate, Outlet } from 'react-router-dom';
-import axios from 'axios';
-import { useSettings } from '../../hooks/useSettings';
-import { useQuery } from '@tanstack/react-query';
-import { Menu, X, Zap, RefreshCw } from 'lucide-react';
-import {
-  ServerStackIcon, WindowIcon, FolderIcon, GlobeAltIcon, PuzzlePieceIcon,
-  CloudArrowDownIcon, UsersIcon, Cog6ToothIcon, CubeIcon,
-  ArrowRightOnRectangleIcon, UserIcon, WalletIcon,
-  EllipsisHorizontalIcon, CircleStackIcon,
-  ListBulletIcon, ArrowLeftIcon, ArrowTrendingUpIcon, GiftIcon,
-  FingerPrintIcon, HomeIcon, BoltIcon, PaperAirplaneIcon, ArrowDownLeftIcon,
-  ChevronDownIcon, EllipsisVerticalIcon,
-  ShieldCheckIcon, TicketIcon, SignalIcon, ServerIcon
-} from '@heroicons/react/24/outline';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { queryKeys } from '@/lib/queryKeys';
+import {
+  ArrowDownLeftIcon,
+  ArrowLeftIcon,
+  ArrowRightOnRectangleIcon,
+  BoltIcon,
+  CircleStackIcon,
+  CloudArrowDownIcon,
+  Cog6ToothIcon, CubeIcon,
+  FingerPrintIcon,
+  FolderIcon,
+  GiftIcon,
+  GlobeAltIcon,
+  HomeIcon,
+  ListBulletIcon,
+  PaperAirplaneIcon,
+  PuzzlePieceIcon,
+  ServerIcon,
+  ServerStackIcon,
+  SignalIcon,
+  TicketIcon,
+  UserIcon,
+  UsersIcon,
+  WalletIcon,
+  WindowIcon
+} from '@heroicons/react/24/outline';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { Menu, RefreshCw, Zap } from 'lucide-react';
+import { createContext, Suspense, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useSettings } from '../../hooks/useSettings';
 
 // Content fallback for lazy route transitions inside MainLayout
 const ContentFallback = () => (
@@ -54,7 +70,7 @@ const SidebarProvider = ({ children }) => {
 };
 
 // Enhanced Navigation Item with ref forwarding
-const NavItem = ({ to, icon: Icon, label, isActive, setRef }) => {
+const NavItem = ({ to, icon: Icon, label, isActive, setRef, onMouseEnter }) => {
   const id = to.replace(/\//g, '-').slice(1);
   const linkRef = useRef(null);
 
@@ -69,6 +85,7 @@ const NavItem = ({ to, icon: Icon, label, isActive, setRef }) => {
     <Link
       to={to}
       ref={linkRef}
+      onMouseEnter={onMouseEnter}
       className={`flex items-center h-8 px-2 text-xs rounded-md transition duration-300 relative z-10 outline-none active:scale-95 ${isActive
         ? 'text-white font-semibold'
         : 'hover:text-white text-white/50 border-none'
@@ -110,6 +127,64 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const location = useLocation();
   const { id } = useParams();
   const showServerSection = location.pathname.includes('/server/');
+  const queryClient = useQueryClient();
+
+  // Prefetch data for a sidebar destination on hover
+  const handleNavPrefetch = useCallback((path) => {
+    if (path === '/servers') {
+      queryClient.query({
+        queryKey: queryKeys.servers.list(),
+        queryFn: () => axios.get('/api/v5/servers').then(r => r.data),
+        staleTime: 30_000,
+      }).catch(() => {});
+    } else if (path === '/wallet') {
+      queryClient.query({
+        queryKey: ['billingInfo'],
+        queryFn: () => axios.get('/api/v5/billing/info').then(r => r.data),
+        staleTime: 30_000,
+      }).catch(() => {});
+    } else if (path === '/coins/store') {
+      queryClient.query({
+        queryKey: ['storeConfig'],
+        queryFn: () => axios.get('/api/store/config').then(r => r.data),
+        staleTime: 30_000,
+      }).catch(() => {});
+    } else if (path === '/coins/daily') {
+      queryClient.query({
+        queryKey: ['daily-rewards-status'],
+        queryFn: () => axios.get('/api/daily-rewards/status').then(r => r.data),
+        staleTime: 30_000,
+      }).catch(() => {});
+    } else if (path === '/boosts') {
+      queryClient.query({
+        queryKey: queryKeys.economy.boostTypes,
+        queryFn: () => axios.get('/api/boosts/types').then(r => r.data),
+        staleTime: 30_000,
+      }).catch(() => {});
+      queryClient.query({
+        queryKey: queryKeys.economy.activeBoosts,
+        queryFn: () => axios.get('/api/boosts/active').then(r => r.data),
+        staleTime: 30_000,
+      }).catch(() => {});
+    } else if (path === '/support') {
+      queryClient.query({
+        queryKey: ['user-tickets', 1],
+        queryFn: () => axios.get('/api/tickets?page=1&per_page=10').then(r => r.data),
+        staleTime: 30_000,
+      }).catch(() => {});
+    } else if (showServerSection) {
+      // Server sub-pages: prefetch server detail for Settings, Package, etc.
+      const serverMatch = path.match(/\/server\/([^/]+)\/(settings|package)/);
+      if (serverMatch) {
+        const sId = serverMatch[1];
+        queryClient.query({
+          queryKey: queryKeys.servers.detail(sId),
+          queryFn: () => axios.get(`/api/v5/server/${sId}`).then(r => r.data),
+          staleTime: 30_000,
+        }).catch(() => {});
+      }
+    }
+  }, [queryClient, showServerSection]);
 
   // Sliding indicator animation logic - separate for user and admin navs
   const [activeTabId, setActiveTabId] = useState(null);
@@ -340,6 +415,7 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
                           label={item.label}
                           isActive={isActivePath(item.path)}
                           setRef={setTabRef}
+                          onMouseEnter={() => handleNavPrefetch(item.path)}
                         />
                       ))}
                     </>
@@ -356,6 +432,7 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
                           label={item.label}
                           isActive={isActivePath(item.path)}
                           setRef={setTabRef}
+                          onMouseEnter={() => handleNavPrefetch(item.path)}
                         />
                       ))}
                     </>
@@ -387,6 +464,7 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
                           label={item.label}
                           isActive={isActivePath(item.path)}
                           setRef={setTabRef}
+                          onMouseEnter={() => handleNavPrefetch(item.path)}
                         />
                       ))}
                     </nav>
