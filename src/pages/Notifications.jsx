@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from '@/lib/queryKeys';
 import axios from "axios";
 import {
   Bell,
@@ -60,8 +61,8 @@ export default function Notifications() {
       setIsMarkingAll(true);
       const res = await axios.post("/api/v5/notifications/read-all");
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications-unread"] })
+        queryClient.invalidateQueries({ queryKey: queryKeys.user.notificationsList }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.user.unread })
       ]);
       toast({
         title: "All notifications read",
@@ -84,8 +85,8 @@ export default function Notifications() {
       setActionInProgressId(id);
       await axios.post(`/api/v5/notifications/${id}/read`);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications-unread"] })
+        queryClient.invalidateQueries({ queryKey: queryKeys.user.notificationsList }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.user.unread })
       ]);
       toast({
         title: "Notification updated",
@@ -107,8 +108,8 @@ export default function Notifications() {
       setActionInProgressId(id);
       await axios.delete(`/api/v5/notifications/${id}`);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications-unread"] })
+        queryClient.invalidateQueries({ queryKey: queryKeys.user.notificationsList }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.user.unread })
       ]);
       toast({
         title: "Notification removed",
@@ -131,7 +132,7 @@ export default function Notifications() {
         .post(`/api/v5/notifications/${item.id}/read`)
         .then(() => {
           queryClient.invalidateQueries({ queryKey: ["notifications"] });
-          queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.user.unread });
         })
         .catch(() => {});
     }

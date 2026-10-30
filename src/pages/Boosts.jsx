@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import axios from 'axios';
 import {
   Zap,
@@ -36,7 +37,7 @@ export default function ServerBoostsPage() {
 
   // Get boost types
   const { data: boostTypes, isLoading: loadingBoostTypes } = useQuery({
-    queryKey: ['boost-types'],
+    queryKey: queryKeys.economy.boostTypes,
     queryFn: async () => {
       const response = await axios.get('/api/boosts/types');
       return response.data;
@@ -45,7 +46,7 @@ export default function ServerBoostsPage() {
 
   // Get active boosts
   const { data: activeBoosts, isLoading: loadingActiveBoosts } = useQuery({
-    queryKey: ['active-boosts'],
+    queryKey: queryKeys.economy.activeBoosts,
     queryFn: async () => {
       const response = await axios.get('/api/boosts/active');
       return response.data;

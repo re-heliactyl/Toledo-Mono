@@ -22,6 +22,7 @@ import {
   Infinity
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import axios from 'axios';
 import { useSettings } from '../../hooks/useSettings';
 
@@ -76,7 +77,7 @@ export default function StorePage() {
 
   // Get user servers
   const { data: servers, isLoading: loadingServers } = useQuery({
-    queryKey: ['servers'],
+    queryKey: queryKeys.servers.list(),
     queryFn: async () => {
       const response = await axios.get('/api/v5/servers');
       return response.data;

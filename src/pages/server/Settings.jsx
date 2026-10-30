@@ -21,6 +21,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { showApiErrorToast } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import axios from 'axios';
 import {
   AlertTriangle,
@@ -57,7 +58,7 @@ const SettingsPage = () => {
 
   // Fetch server details
   const { data: serverData, isLoading: isLoadingServer } = useQuery({
-    queryKey: ['server', id],
+    queryKey: queryKeys.servers.detail(id),
     queryFn: async () => {
       const { data } = await axios.get(`/api/v5/server/${id}`);
       setServerName(data.attributes.name);
@@ -74,7 +75,7 @@ const SettingsPage = () => {
 
   // Fetch startup variables
   const { data: startupData, isLoading: isLoadingStartup } = useQuery({
-    queryKey: ['server', id, 'startup'],
+    queryKey: queryKeys.servers.startup(id),
     queryFn: async () => {
       const { data } = await axios.get(`/api/server/${id}/variables`);
       return data;

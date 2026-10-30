@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import axios from 'axios';
 import { AlertCircle, Clock, Coins, Zap } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -12,7 +13,7 @@ export default function AFKPage() {
   const [error, setError] = useState('');
 
   const { data: afkConfig, isLoading: loadingConfig } = useQuery({
-    queryKey: ['afk-config'],
+    queryKey: queryKeys.economy.afk,
     queryFn: async () => {
       const response = await axios.get('/api/afk/config');
       return response.data;

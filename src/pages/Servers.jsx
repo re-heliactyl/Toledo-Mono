@@ -2,6 +2,7 @@ import { getApiErrorObject } from '@/lib/api';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import axios from 'axios';
 import {
   ServerIcon, PlusIcon,
@@ -56,7 +57,7 @@ function CreateServerModal({ isOpen, onClose }) {
   });
 
   const { data: locations } = useQuery({
-    queryKey: ['locations'],
+    queryKey: queryKeys.infrastructure.locations,
     queryFn: async () => {
       const { data } = await axios.get('/api/v5/locations');
       return data;
@@ -64,7 +65,7 @@ function CreateServerModal({ isOpen, onClose }) {
   });
 
   const { data: nodes } = useQuery({
-    queryKey: ['nodes'],
+    queryKey: queryKeys.infrastructure.nodes,
     queryFn: async () => {
       const { data } = await axios.get('/api/v5/nodes');
       return data;
@@ -82,7 +83,7 @@ function CreateServerModal({ isOpen, onClose }) {
   });
 
   const { data: bundleStatus } = useQuery({
-    queryKey: ['bundle-status'],
+    queryKey: queryKeys.economy.bundles,
     queryFn: async () => {
       try {
         const { data } = await axios.get('/api/bundles/status');
@@ -787,7 +788,7 @@ export default function ServersPage() {
   const reconnectTimeoutRef = useRef({});
 
   const { data: servers, isLoading: loadingServers } = useQuery({
-    queryKey: ['servers'],
+    queryKey: queryKeys.servers.list(),
     queryFn: async () => {
       const { data } = await axios.get('/api/v5/servers');
       return data;
@@ -795,7 +796,7 @@ export default function ServersPage() {
   });
 
   const { data: subuserServers, isLoading: loadingSubuserServers } = useQuery({
-    queryKey: ['subuser-servers'],
+    queryKey: queryKeys.servers.subusers(),
     queryFn: async () => {
       const { data } = await axios.get('/api/subuser-servers');
       return data;

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from '@/lib/queryKeys';
 import axios from "axios";
 import { Bell, CheckCheck, Loader2 } from "lucide-react";
 import {
@@ -18,7 +19,7 @@ export function NotificationBell({ side = "top", align = "end", className = "" }
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["notifications-unread"],
+    queryKey: queryKeys.user.unread,
     queryFn: async () => {
       const response = await axios.get("/api/v5/notifications", {
         params: { limit: 10 }
@@ -40,8 +41,8 @@ export function NotificationBell({ side = "top", align = "end", className = "" }
       setIsMarkingAll(true);
       await axios.post("/api/v5/notifications/read-all");
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications-unread"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] })
+        queryClient.invalidateQueries({ queryKey: queryKeys.user.unread }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.user.notificationsList })
       ]);
     } catch (error) {
       console.error("Failed to mark all notifications as read:", error);

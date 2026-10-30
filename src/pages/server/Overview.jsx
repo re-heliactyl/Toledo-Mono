@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import axios from "axios";
 import {
   AlertTriangle,
@@ -327,7 +328,7 @@ export default function ConsolePage() {
   const isSuspendedRef = useRef(false);
 
   const { data: userData } = useQuery({
-    queryKey: ['user'],
+    queryKey: queryKeys.user.root,
     queryFn: async () => {
       const { data } = await axios.get('/api/remote/user');
       return data;
@@ -335,7 +336,7 @@ export default function ConsolePage() {
   });
 
   const { data: serverData, error: serverError, isLoading: isLoadingServer } = useQuery({
-    queryKey: ['server', id],
+    queryKey: queryKeys.servers.detail(id),
     queryFn: async () => {
       const { data } = await axios.get(`/api/v5/server/${id}`);
       return data;
@@ -346,7 +347,7 @@ export default function ConsolePage() {
   const isOwner = !isLoadingServer && (serverData?.meta?.isOwner ?? false);
 
   const { data: renewalStatus, error: renewalError, isLoading: isRenewalLoading } = useQuery({
-    queryKey: ['server', id, 'renewal'],
+    queryKey: queryKeys.servers.renewal(id),
     queryFn: async () => {
       try {
         const { data } = await axios.get(`/api/server/${id}/renewal/status`);

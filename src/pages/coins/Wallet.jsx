@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import axios from 'axios';
 import {
   Activity,
@@ -226,7 +227,7 @@ export default function WalletPage() {
 
   // Fetch invoices
   const { data: invoices, isLoading: loadingInvoices } = useQuery({
-    queryKey: ['invoices'],
+    queryKey: queryKeys.economy.invoices(),
     queryFn: async () => {
       const response = await axios.get('/api/v5/billing/invoices');
       return response.data;
@@ -236,7 +237,7 @@ export default function WalletPage() {
 
   // Fetch leaderboard
   const { data: leaderboardData, isLoading: loadingLeaderboard } = useQuery({
-    queryKey: ['leaderboard'],
+    queryKey: queryKeys.economy.leaderboard(),
     queryFn: async () => {
       const response = await axios.get('/api/v5/billing/leaderboard');
       return response.data;
