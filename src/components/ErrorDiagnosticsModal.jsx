@@ -29,7 +29,8 @@ export function ErrorDiagnosticsModal({ isOpen, onClose, errorData }) {
 
   const formatCopyPayload = () => {
     return [
-      `=== OVERNODE ERROR DIAGNOSTIC REPORT ===`,
+      `=== TOLEDO ERROR DIAGNOSTIC REPORT ===
+      Version: 10.1.0 (Toledo)`,
       `Error Code: ${code}`,
       `Title: ${cleanTitle}`,
       `Status Code: ${status}`,

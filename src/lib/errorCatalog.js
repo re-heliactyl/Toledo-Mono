@@ -1,5 +1,5 @@
 /**
- * Centralized Error Catalog for Overnode Console (Toledo)
+ * Centralized Error Catalog for Toledo (Heliactyl Next)
  * Defines error codes, human titles, probable root causes, and troubleshooting tips.
  */
 
@@ -109,7 +109,7 @@ export const ERROR_CATALOG = {
     code: 'ERR-HTTP-500',
     title: 'Internal Server Error',
     cause: 'An unhandled server-side exception occurred on Toledo backend.',
-    suggestion: 'Copy diagnostic details and report to Overnode technical team.',
+    suggestion: 'Copy diagnostic details and report to the technical support team.',
   },
   'ERR-HTTP-502': {
     code: 'ERR-HTTP-502',
