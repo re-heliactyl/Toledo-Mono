@@ -230,7 +230,7 @@ export default function BannedPage() {
             <Button
               variant="outline"
               className="flex-1 border-[#2e3337] hover:bg-[#202229] hover:border-[#2e3337] text-white h-11"
-              onClick={() => window.location.href = '/'}
+              onClick={() => window.location.href = '/website'}
             >
               <Home className="mr-2 h-4 w-4" />
               Back to website

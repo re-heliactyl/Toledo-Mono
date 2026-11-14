@@ -268,6 +268,13 @@ const ProtectedRoute = ({ children }) => {
         });
 
         if (!response.ok) {
+          if (response.status === 403) {
+            const errorData = await response.json().catch(() => null);
+            if (errorData?.code === 'USER_BANNED') {
+              navigate('/banned', { replace: true });
+              return;
+            }
+          }
           throw new Error('Unauthorized');
         }
 

@@ -51,6 +51,10 @@ const TwoFactorVerification = () => {
         const redirectUrl = location.state?.redirectUrl || '/dashboard';
         navigate(redirectUrl, { replace: true });
       } else {
+        if (data.code === 'USER_BANNED') {
+          navigate('/banned', { replace: true });
+          return;
+        }
         setError(data.error || 'Invalid verification code');
         setVerificationCode('');
       }
