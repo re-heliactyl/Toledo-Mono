@@ -35,10 +35,21 @@ import {
 } from '@heroicons/react/24/outline';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Menu, RefreshCw, Zap } from 'lucide-react';
+import { Menu, RefreshCw, Snowflake, Zap } from 'lucide-react';
 import { createContext, Suspense, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useSettings } from '../../hooks/useSettings';
+import { useSnowPreference } from '../../hooks/useSnowPreference';
+
+// Small on/off pill matching Toledo's muted palette
+const SnowPill = ({ on }) => (
+  <span
+    aria-hidden="true"
+    className={`ml-auto inline-flex h-4 w-7 shrink-0 items-center rounded-full border border-white/5 p-0.5 transition-colors duration-200 ${on ? 'bg-white' : 'bg-[#394047]'}`}
+  >
+    <span className={`h-2.5 w-2.5 rounded-full transition-transform duration-200 ${on ? 'translate-x-3 bg-[#202229]' : 'translate-x-0 bg-[#95a1ad]'}`} />
+  </span>
+);
 
 // Content fallback for lazy route transitions inside MainLayout
 const ContentFallback = () => (
@@ -114,6 +125,8 @@ const MainLayout = () => {
     global_name: ''
   });
   const { settings } = useSettings();
+  const { snowEnabled, setSnowEnabled } = useSnowPreference();
+  const snowAvailable = settings?.features?.snow === true;
   const [balances, setBalances] = useState({ coins: 0 });
   const [servers, setServers] = useState([]);
   const [subuserServers, setSubuserServers] = useState([]);
@@ -538,6 +551,21 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
                         <FingerPrintIcon className="w-4 h-4" />
                         <span className="font-medium">Passkeys</span>
                       </DropdownMenuItem>
+                      {snowAvailable && (
+                        <DropdownMenuItem
+                          role="menuitemcheckbox"
+                          aria-checked={snowEnabled}
+                          className="flex items-center gap-2 px-3 py-2.5 text-sm cursor-pointer text-white hover:bg-white/5 transition-all duration-200 focus:bg-white/5"
+                          onSelect={(event) => {
+                            event.preventDefault();
+                            setSnowEnabled(!snowEnabled);
+                          }}
+                        >
+                          <Snowflake className="w-4 h-4" />
+                          <span className="font-medium">Snow effect</span>
+                          <SnowPill on={snowEnabled} />
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator className="-mx-1 my-1 h-px bg-white/5" />
                       <DropdownMenuItem
                         className="flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-red-950/30 hover:text-red-300 transition-all duration-200 focus:bg-red-950/30 focus:text-red-300 cursor-pointer"
@@ -750,6 +778,19 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
                       <FingerPrintIcon className="w-4 h-4 mr-3" />
                       Passkeys
                     </button>
+                    {snowAvailable && (
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={snowEnabled}
+                        onClick={() => setSnowEnabled(!snowEnabled)}
+                        className="flex items-center text-white w-full px-3 py-2.5 text-sm text-left hover:bg-white/5 rounded-md transition-colors"
+                      >
+                        <Snowflake className="w-4 h-4 mr-3" />
+                        Snow effect
+                        <SnowPill on={snowEnabled} />
+                      </button>
+                    )}
                     <div className="border-t border-white/5 my-1" />
                     <button
                       type="button"
