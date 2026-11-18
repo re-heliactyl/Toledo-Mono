@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 
 // MainLayout stays eager — it's the app shell rendered on every protected route
 import MainLayout from '@/components/layouts/MainLayout';
+import SnowEffect from '@/components/seasonal/SnowEffect';
 
 // Lazy-loaded page components (code-split per route)
 const Overview = React.lazy(() => import('@/pages/server/Overview'));
@@ -333,6 +334,7 @@ export default function App() {
   return (
     <ErrorBoundary siteName={siteName}>
       <div className="dark text-white bg-[#151719] overflow-x-clip">
+        <SnowEffect />
         <Suspense fallback={<PageFallback />}>
         <Routes>
           {/* Root route with conditional redirect */}
