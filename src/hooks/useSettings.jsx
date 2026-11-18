@@ -16,7 +16,10 @@ export const SettingsProvider = ({ children }) => {
       const cached = localStorage.getItem('site_settings');
       return cached ? JSON.parse(cached) : undefined;
     },
-    staleTime: Infinity,
+    // Cached settings render instantly but are refreshed once per load, so config.toml
+    // changes (e.g. new features) reach returning visitors without clearing their storage.
+    initialDataUpdatedAt: 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   return (

@@ -9,34 +9,84 @@ const COL_WIDTH = 3;          // px per heightmap column
 const MAX_CAP = 16;           // max settled snow height (px)
 const CAP_CHANCE = 0.55;      // share of cards that collect snow at all
 const LAND_CHANCE = 0.45;     // share of flakes that settle when crossing a snowy card
-const RESCAN_MS = 1500;       // how often the DOM is scanned for new cards
+const RESCAN_MS = 3000;       // fallback DOM rescan (DOM changes trigger one sooner)
 const RECT_MS = 400;          // max staleness of cached card positions
 
 const rand = (min, max) => min + Math.random() * (max - min);
 
-function makeFlakeSprite() {
-  const size = 16;
-  const sprite = document.createElement('canvas');
-  sprite.width = sprite.height = size;
-  const ctx = sprite.getContext('2d');
-  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.45, 'rgba(255,255,255,0.85)');
-  g.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, size, size);
-  return sprite;
+// Six-armed snow crystals, pre-rendered once and reused for every falling flake.
+const CRYSTALS = [
+  { branches: [[0.42, 0.26], [0.68, 0.2]], hex: 0 },
+  { branches: [[0.55, 0.3]], hex: 0.24 },
+  { branches: [[0.32, 0.16], [0.56, 0.24], [0.8, 0.13]], hex: 0 },
+  { branches: [[0.5, 0.2]], hex: 0.16, tips: true },
+];
+const SPRITE_SIZE = 64;
+
+function makeFlakeSprites() {
+  return CRYSTALS.map((variant) => {
+    const sprite = document.createElement('canvas');
+    sprite.width = sprite.height = SPRITE_SIZE;
+    const ctx = sprite.getContext('2d');
+    const R = SPRITE_SIZE * 0.4;
+    ctx.translate(SPRITE_SIZE / 2, SPRITE_SIZE / 2);
+    ctx.strokeStyle = '#ffffff';
+    ctx.fillStyle = '#ffffff';
+    ctx.lineWidth = R * 0.1;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(200, 225, 255, 0.9)';
+    ctx.shadowBlur = 3;
+    for (let i = 0; i < 6; i++) {
+      ctx.save();
+      ctx.rotate((i * Math.PI) / 3);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, -R);
+      for (const [pos, len] of variant.branches) {
+        const y = -R * pos;
+        ctx.moveTo(0, y);
+        ctx.lineTo(-R * len, y - R * len * 0.85);
+        ctx.moveTo(0, y);
+        ctx.lineTo(R * len, y - R * len * 0.85);
+      }
+      ctx.stroke();
+      if (variant.tips) {
+        ctx.beginPath();
+        ctx.arc(0, -R, R * 0.07, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    if (variant.hex) {
+      ctx.beginPath();
+      for (let i = 0; i <= 6; i++) {
+        const a = (i * Math.PI) / 3 + Math.PI / 6;
+        const x = Math.cos(a) * R * variant.hex;
+        const y = Math.sin(a) * R * variant.hex;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+    return sprite;
+  });
 }
 
 function spawnFlake(flake, w, h, fromTop) {
-  flake.r = rand(0.8, 2.6);
+  flake.size = rand(8, 20);                 // rendered diameter in px
   flake.x = rand(0, w);
-  flake.y = fromTop ? rand(-40, -4) : rand(0, h);
-  flake.vy = 18 + flake.r * 14 + rand(0, 10); // px/s, bigger flakes fall faster
-  flake.sway = rand(6, 22);
+  flake.y = fromTop ? rand(-40, -10) : rand(0, h);
+  flake.vy = 20 + rand(0, 26) + flake.size * 0.6; // px/s
+  flake.sway = rand(8, 26);
   flake.phase = rand(0, Math.PI * 2);
-  flake.freq = rand(0.4, 1.1);
-  flake.alpha = rand(0.35, 0.9);
+  flake.freq = rand(0.3, 0.9);
+  flake.angle = rand(0, Math.PI * 2);
+  flake.spin = rand(-0.9, 0.9);              // rad/s
+  flake.alpha = rand(0.55, 0.95);
+  flake.sprite = Math.floor(Math.random() * CRYSTALS.length);
   return flake;
 }
 
@@ -179,7 +229,7 @@ export default function SnowCanvas({ still = false }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d', { alpha: true });
-    const sprite = makeFlakeSprite();
+    const sprites = makeFlakeSprites();
     const caps = new WeakMap(); // element -> { active, heights, seed, sideL, sideR, sprite }
 
     let w = 0, h = 0, dpr = 1;
@@ -194,7 +244,7 @@ export default function SnowCanvas({ still = false }) {
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = still ? 0 : Math.round(Math.min(110, Math.max(28, (w * h) / 15000)));
+      const count = still ? 0 : Math.round(Math.min(80, Math.max(24, (w * h) / 18000)));
       while (flakes.length < count) flakes.push(spawnFlake({}, w, h, false));
       flakes.length = count;
       rectsDirty = true;
@@ -313,7 +363,7 @@ export default function SnowCanvas({ still = false }) {
           const surface = surfaceAt(t, x);
           if (prevY < surface && f.y >= surface) {
             if (Math.random() < LAND_CHANCE) {
-              deposit(t, x, f.r * 0.35);
+              deposit(t, x, f.size * 0.06);
               landed = true;
             }
             break;
@@ -324,10 +374,14 @@ export default function SnowCanvas({ still = false }) {
           continue;
         }
 
-        const size = f.r * 2.4;
+        f.angle += f.spin * dt;
+        const cos = Math.cos(f.angle) * dpr;
+        const sin = Math.sin(f.angle) * dpr;
+        ctx.setTransform(cos, sin, -sin, cos, x * dpr, f.y * dpr);
         ctx.globalAlpha = f.alpha;
-        ctx.drawImage(sprite, x - size / 2, f.y - size / 2, size, size);
+        ctx.drawImage(sprites[f.sprite], -f.size / 2, -f.size / 2, f.size, f.size);
       }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.globalAlpha = 1;
     };
 
@@ -348,6 +402,13 @@ export default function SnowCanvas({ still = false }) {
     resize();
     scan();
     const scanTimer = setInterval(scan, RESCAN_MS);
+    // Pick up cards as soon as pages render them (debounced).
+    let scanQueued = 0;
+    const observer = new MutationObserver(() => {
+      if (scanQueued) return;
+      scanQueued = setTimeout(() => { scanQueued = 0; scan(); }, 150);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', resize, { passive: true });
     window.addEventListener('scroll', markDirty, { passive: true, capture: true });
     document.addEventListener('visibilitychange', onVisibility);
@@ -356,6 +417,8 @@ export default function SnowCanvas({ still = false }) {
     return () => {
       stop();
       clearInterval(scanTimer);
+      observer.disconnect();
+      clearTimeout(scanQueued);
       window.removeEventListener('resize', resize);
       window.removeEventListener('scroll', markDirty, { capture: true });
       document.removeEventListener('visibilitychange', onVisibility);
