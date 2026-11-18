@@ -301,7 +301,8 @@ export default function WalletPage() {
       isCurrency = true;
     } else if (
       ['coin_purchase', 'transfer_sent', 'transfer_received', 'daily_claim', 'daily claim', 'stake_create', 'stake_claim', 'store_purchase', 'store purchase', 'boost_purchase', 'boost_refund', 'boost_extend'].includes(txn.type) ||
-      (txn.type === 'purchase' && txn.details?.package_amount)
+      (txn.type === 'purchase' && txn.details?.package_amount) ||
+      (txn.type === 'advent_reward' && txn.amount !== 0)
     ) {
       isCoins = true;
     }
