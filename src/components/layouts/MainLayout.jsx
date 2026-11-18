@@ -13,6 +13,7 @@ import {
   ArrowLeftIcon,
   ArrowRightOnRectangleIcon,
   BoltIcon,
+  CalendarDaysIcon,
   CircleStackIcon,
   CloudArrowDownIcon,
   Cog6ToothIcon, CubeIcon,
@@ -155,6 +156,12 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
         queryFn: () => axios.get('/api/daily-rewards/status').then(r => r.data),
         staleTime: 30_000,
       }).catch(() => {});
+    } else if (path === '/advent') {
+      queryClient.query({
+        queryKey: ['advent-status'],
+        queryFn: () => axios.get('/api/advent/status').then(r => r.data),
+        staleTime: 30_000,
+      }).catch(() => {});
     } else if (path === '/boosts') {
       queryClient.query({
         queryKey: queryKeys.economy.boostTypes,
@@ -274,6 +281,7 @@ const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     { icon: WalletIcon, label: 'Wallet', path: '/wallet' },
     { icon: CircleStackIcon, label: 'Store', path: '/coins/store' },
     { icon: GiftIcon, label: 'Daily rewards', path: '/coins/daily' },
+    ...(settings?.features?.advent ? [{ icon: CalendarDaysIcon, label: 'Advent calendar', path: '/advent' }] : []),
     ...(afkConfig?.enabled ? [{ icon: Zap, label: 'AFK', path: '/coins/afk' }] : []),
     ...(settings?.features?.boosts !== false ? [{ icon: BoltIcon, label: 'Boosts', path: '/boosts' }] : []),
     { icon: TicketIcon, label: 'Support', path: '/support' }

@@ -42,6 +42,7 @@ const AFKPage = React.lazy(() => import('./pages/coins/AFKPage'));
 const Store = React.lazy(() => import('./pages/coins/Store'));
 const Staking = React.lazy(() => import('./pages/coins/Staking'));
 const Daily = React.lazy(() => import('./pages/coins/Daily'));
+const Advent = React.lazy(() => import('./pages/coins/Advent'));
 const Wallet = React.lazy(() => import('./pages/coins/Wallet'));
 const BillingSuccess = React.lazy(() => import('./pages/billing/Success'));
 const AccountPage = React.lazy(() => import('./pages/Account'));
@@ -371,6 +372,7 @@ export default function App() {
             <Route path="/coins/store" element={<Store />} />
             <Route path="/coins/staking" element={<Staking />} />
             <Route path="/coins/daily" element={<Daily />} />
+            <Route path="/advent" element={<Advent />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/billing/success" element={<BillingSuccess />} />
             <Route path="/billing/subscription-success" element={<BillingSuccess />} />
